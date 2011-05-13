@@ -2,11 +2,11 @@
 # -*- coding: utf-8 -*-
 
 import os, sys
-from os.path import dirname, lexists, join as pjoin
+from os.path import dirname, exists, join as pjoin
 
 prefix = dirname(dirname(sys.argv[0]))
 libdir = pjoin(prefix,'share','subvirc')
-if prefix == '' or not lexists(libdir):
+if prefix == '' or not exists(libdir):
     libdir = os.getcwd()
 sys.path.insert(1, libdir)
 

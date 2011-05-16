@@ -5,6 +5,7 @@ import re
 import select
 import sys
 import atexit
+import socketserver
 
 from socket import socket, AF_INET, AF_INET6
 from subprocess import Popen, PIPE
@@ -16,6 +17,24 @@ if not 'cmd_char' in config:
     config['cmd_char'] = '!'
 
 sendall_u = lambda sock, data: sock.sendall(bytes(data, "utf-8"))
+
+def mktcphandler(sock):
+    class MyTCPHandler(socketserver.StreamRequestHandler):
+        def handle(self):
+            for line in self.rfile:
+                line = str(line, "utf-8")
+                line = line.strip()
+                words = line.split()
+
+                if len(words) < 1:
+                        pass
+                elif words[0][0] == '@':
+                    # message to a person
+                    sendall_u(sock, 'PRIVMSG {0} :{1}\r\n'.format(words[0][1:], " ".join(words[1:])))
+                elif words[0][0] == '#':
+                    # message to a channel
+                    sendall_u(sock, 'PRIVMSG {0} :{1}\r\n'.format(words[0], " ".join(words[1:])))
+    return MyTCPHandler
 
 def main():
     sock = socket()
@@ -29,11 +48,8 @@ def main():
     if 'sockets' in config:
         for i in config['sockets']:
             if ":" in i[0]:
-                s = socket(AF_INET6)
-            else:
-                s = socket(AF_INET)
-            s.bind((i[0],i[1]))
-            s.listen(1)
+                continue # ipv6 not working atm.
+            s = socketserver.TCPServer((i[0],i[1]), mktcphandler(sock))
             rxsocks.append(s)
 
     pids = []
@@ -45,7 +61,7 @@ def main():
         for rxsock in rxsocks:
             pids.append(os.fork())
             if pids[-1] == 0:
-                listenloop(rxsock, sock) or sys.exit(2)
+                rxsock.serve_forever() or sys.exit(2)
         os.wait()
     except KeyboardInterrupt:
         sys.exit(0)
@@ -74,22 +90,6 @@ def mainloop(sock):
             if os.fork() == 0:
                 handle_privmsg(sock, words)
                 sys.exit(0)
-
-def listenloop(rxsock, txsock):
-    while True:
-        conn, addr = rxsock.accept()
-        for line in conn.makefile():
-            line = line.strip()
-            words = line.split()
-
-            if words[0][0] == '@':
-                # message to a person
-                txsock.sendall('PRIVMSG {0} :{1}\r\n'.format(words[0][1:], " ".join(words[1:])))
-            elif words[0][0] == '#':
-                # message to a channel
-                txsock.sendall('PRIVMSG {0} :{1}\r\n'.format(words[0], " ".join(words[1:])))
-            else:
-                print "!!! unrecognised message: " + line
 
 def handle_privmsg(sock, words):
     sender = re.split(r'[:!@]', words[0])

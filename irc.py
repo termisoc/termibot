@@ -1,17 +1,16 @@
 #!/usr/bin/env python
 
+import atexit
+import json
 import os
 import re
 import select
-import sys
-import atexit
 import socketserver
+import sys
 
-from socket import socket, AF_INET, AF_INET6
+from socket import socket, AF_INET6
 from subprocess import Popen, PIPE
-from time import sleep
 
-import json
 config = json.load(open("subvirc.conf"))
 if not 'cmd_char' in config:
     config['cmd_char'] = '!'

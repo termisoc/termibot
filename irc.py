@@ -14,12 +14,15 @@ config = json.load(open("subvirc.conf"))
 if not 'cmd_char' in config:
     config['cmd_char'] = '!'
 
+sendall_u = lambda sock, data: sock.sendall(bytes(data, "utf-8"))
+
 def main():
     sock = socket()
     sock.connect((config['server'], 6667))
 
-    sock.sendall("NICK {0}\r\n".format(config['nick']))
-    sock.sendall("USER {0} {1} {2} :{3}\r\n".format(config['user'],config['hostname'],config['server'],config['realname']))
+
+    sendall_u(sock, "NICK {0}\r\n".format(config['nick']))
+    sendall_u(sock,"USER {0} {1} {2} :{3}\r\n".format(config['user'],config['hostname'],config['server'],config['realname']))
 
     rxsocks = []
     if 'sockets' in config:
@@ -58,15 +61,15 @@ def mainloop(sock):
         if words[1] == "433":
             # nickname already in use.
             config['nick'] += "_"
-            sock.sendall("NICK {0}\r\n".format(config['nick']))
+            sendall_u(sock,"NICK {0}\r\n".format(config['nick']))
         elif words[1] == "376":
             # end of motd.
             for channel in config['channels']:
-                sock.sendall("JOIN {0}\r\n".format(channel))
+                sendall_u(sock,"JOIN {0}\r\n".format(channel))
         elif words[0] == "PING":
-            sock.sendall("PONG {0}\r\n".format(words[1]))
+            sendall_u(sock,"PONG {0}\r\n".format(words[1]))
         elif len(words) > 3 and words[3] == ":" + config['cmd_char'] + "quit":
-            sock.sendall("QUIT :Received " + config['cmd_char'] + "quit command.\r\n")
+            sendall_u(sock,"QUIT :Received " + config['cmd_char'] + "quit command.\r\n")
             sys.exit(1)
         elif words[1] == "PRIVMSG":
             if os.fork() == 0:
@@ -114,4 +117,4 @@ def handle_privmsg(sock, words):
             response = ["{0}: {1}".format(sender[0], r) for r in response]
 
         for r in response:
-            sock.sendall("PRIVMSG {0} :{1}\r\n".format(to, r))
+            sendall_u(sock,"PRIVMSG {0} :{1}\r\n".format(to, r))

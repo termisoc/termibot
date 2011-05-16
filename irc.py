@@ -97,7 +97,7 @@ def handle_privmsg(sock, words):
     if words[3][1] == config['cmd_char']:
         cmd = words[3][2:]
 
-        cmd_path = os.path.join(os.dirname(sys.argv[0], "plugins", cmd))
+        cmd_path = os.path.join(os.path.dirname(sys.argv[0], "plugins", cmd))
         response = []
 
         p = Popen([cmd_path], bufsize=1000, stdin=PIPE, stdout=PIPE, stderr=PIPE)

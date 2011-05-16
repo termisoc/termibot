@@ -32,15 +32,21 @@ def main():
             s.listen(1)
             rxsocks.append(s)
 
+    pids = []
     try:
-        if os.fork() == 0:
-            mainloop(sock)
+        pids.append(os.fork())
+        if pids[-1] == 0:
+            mainloop(sock) or sys.exit(1)
         for rxsock in rxsocks:
-            if os.fork() == 0:
-                listenloop(rxsock, sock)
+            pids.append(os.fork())
+            if pids[-1] == 0:
+                listenloop(rxsock, sock) or sys.exit(2)
         os.wait()
     except KeyboardInterrupt:
         sys.exit(0)
+    except:
+        for pid in pids:
+            os.kill(pid, 15)
 
 def mainloop(sock):
     for line in sock.makefile():

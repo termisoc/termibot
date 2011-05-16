@@ -4,6 +4,7 @@ import os
 import re
 import select
 import sys
+import atexit
 
 from socket import socket, AF_INET, AF_INET6
 from subprocess import Popen, PIPE
@@ -36,6 +37,7 @@ def main():
             rxsocks.append(s)
 
     pids = []
+    atexit.register(lambda: [os.kill(p,15) for p in pids])
     try:
         pids.append(os.fork())
         if pids[-1] == 0:
@@ -47,9 +49,6 @@ def main():
         os.wait()
     except KeyboardInterrupt:
         sys.exit(0)
-    except:
-        for pid in pids:
-            os.kill(pid, 15)
 
 def mainloop(sock):
     for line in sock.makefile():

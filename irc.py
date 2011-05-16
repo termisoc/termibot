@@ -36,6 +36,9 @@ def mktcphandler(sock):
                     sendall_u(sock, 'PRIVMSG {0} :{1}\r\n'.format(words[0], " ".join(words[1:])))
     return MyTCPHandler
 
+class V6Server(socketserver.TCPServer):
+    address_family = AF_INET6
+
 def main():
     sock = socket()
     sock.connect((config['server'], 6667))
@@ -48,8 +51,9 @@ def main():
     if 'sockets' in config:
         for i in config['sockets']:
             if ":" in i[0]:
-                continue # ipv6 not working atm.
-            s = socketserver.TCPServer((i[0],i[1]), mktcphandler(sock))
+                s = V6Server((i[0],i[1]), mktcphandler(sock))
+            else:
+                s = socketserver.TCPServer((i[0],i[1]), mktcphandler(sock))
             rxsocks.append(s)
 
     pids = []

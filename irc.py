@@ -65,6 +65,9 @@ def mainloop(sock):
                 sock.sendall("JOIN {0}\r\n".format(channel))
         elif words[0] == "PING":
             sock.sendall("PONG {0}\r\n".format(words[1]))
+        elif len(words) > 3 and words[3] == ":" + config['cmd_char'] + "quit":
+            sock.sendall("QUIT :Received " + config['cmd_char'] + "quit command.\r\n")
+            sys.exit(1)
         elif words[1] == "PRIVMSG":
             if os.fork() == 0:
                 handle_privmsg(sock, words)

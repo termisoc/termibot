@@ -5,10 +5,10 @@ import json
 import os
 import re
 import select
+import socket
 import socketserver
 import sys
 
-from socket import socket, AF_INET6
 from subprocess import Popen, PIPE
 
 config = json.load(open("subvirc.conf"))
@@ -36,12 +36,12 @@ def mktcphandler(sock):
     return MyTCPHandler
 
 class V6Server(socketserver.TCPServer):
-    address_family = AF_INET6
+    address_family = socket.AF_INET6
 
 def main():
-    sock = socket()
-    sock.connect((config['server'], 6667))
-
+    addrinfo = socket.getaddrinfo(config['server'], config['port'])
+    sock = socket.socket(addrinfo[0][0],addrinfo[0][1],addrinfo[0][2])
+    sock.connect(addrinfo[0][4])
 
     sendall_u(sock, "NICK {0}\r\n".format(config['nick']))
     sendall_u(sock,"USER {0} {1} {2} :{3}\r\n".format(config['user'],config['hostname'],config['server'],config['realname']))
@@ -49,10 +49,11 @@ def main():
     rxsocks = []
     if 'sockets' in config:
         for i in config['sockets']:
-            if ":" in i[0]:
-                s = V6Server((i[0],i[1]), mktcphandler(sock))
+            addrinfo = socket.getaddrinfo(i[0],i[1])
+            if addrinfo[0][0] == 10:
+                s = V6Server(addrinfo[0][4], mktcphandler(sock))
             else:
-                s = socketserver.TCPServer((i[0],i[1]), mktcphandler(sock))
+                s = socketserver.TCPServer(addrinfo[0][4], mktcphandler(sock))
             rxsocks.append(s)
 
     pids = []

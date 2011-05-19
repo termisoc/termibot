@@ -14,6 +14,7 @@ from subprocess import Popen, PIPE
 config = json.load(open("subvirc.conf"))
 if not 'cmd_char' in config:
     config['cmd_char'] = '!'
+config['instance'] = config['nick']
 
 sendall_u = lambda sock, data: sock.sendall(bytes(data, "utf-8"))
 
@@ -93,31 +94,47 @@ def mainloop(sock):
         elif words[1] == "PRIVMSG":
             if os.fork() == 0:
                 handle_privmsg(sock, words)
-                sys.exit(0)
+
+def run_command(sender, channel, cmd, words):
+    sender_parts = re.split(r'[:!@]', sender)
+
+    cmd_path = os.path.join(os.path.dirname(sys.argv[0]), "plugins", cmd)
+    if not os.path.exists(cmd_path):
+        return []
+    p = Popen([cmd_path, config['instance']], bufsize=1000, stdin=PIPE, stdout=PIPE, stderr=PIPE)
+
+    w = lambda s: p.stdin.write(bytes(s, 'utf-8'))
+    w("\t".join(sender_parts))
+    w("\t" + sender + "\n")
+    w(" ".join(words) + "\n")
+    p.stdin.close()
+
+    response = []
+    for line in p.stderr:
+        response.append("ERROR: " + str(line, "utf-8"))
+    for line in p.stdout:
+        response.append(str(line, "utf-8"))
+    return response
 
 def handle_privmsg(sock, words):
     sender = re.split(r'[:!@]', words[0])
     sender.pop(0)
     to = words[2]
 
+    response = []
     if words[3][1] == config['cmd_char']:
-        cmd = words[3][2:]
+        response = run_command(words[0], to, words[3][2:], words[4:])
+    else:
+        if re.search(r'([+-]{2}|±)\B', " ".join(words[3:])):
+            response += run_command(words[0], to, "karma_filter", [words[3][1:]] + words[4:])
+        if re.search(r'https?://', " ".join(words[3:])):
+            # todo: url filtering
+            pass
 
-        cmd_path = os.path.join(os.path.dirname(sys.argv[0], "plugins", cmd))
-        response = []
+    if words[2] == config['nick']:
+        to = sender[0]
+    else:
+        response = ["{0}: {1}".format(sender[0], r) for r in response]
 
-        p = Popen([cmd_path], bufsize=1000, stdin=PIPE, stdout=PIPE, stderr=PIPE)
-        (child_stdin, child_stdout, child_stderr) = (p.stdin, p.stdout, p.stderr)
-
-        for line in p.stderr:
-            response.append("ERROR: " + line)
-        for line in p.stdout:
-            response.append(line)
-
-        if words[2] == config['nick']:
-            to = sender[0]
-        else:
-            response = ["{0}: {1}".format(sender[0], r) for r in response]
-
-        for r in response:
-            sendall_u(sock,"PRIVMSG {0} :{1}\r\n".format(to, r))
+    for r in response:
+        sendall_u(sock,"PRIVMSG {0} :{1}\r\n".format(to, r))

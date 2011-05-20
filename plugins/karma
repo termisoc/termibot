@@ -27,7 +27,7 @@ def _filter(line, instance):
     plusminus = r'([+-]{2}|±)'
     simple_karma = r'\w{3,}'
     quoted_string = r'"(?:(?:\\.)|(?:[^"]))*"'
-    karma_item = '(' + simple_karma + '|' + quoted_string + ')' + plusminus + r'(?=(?:\W|$))'
+    karma_item = '(' + simple_karma + '|' + quoted_string + ')' + plusminus + r'(?=(?:\s|$))'
     karma_item_reason = karma_item + '( (?:for|because)' + '.+?' + '(?='+karma_item+'|$)|\([^\)]+\))?'
     karma_item_re = re.compile(karma_item_reason)
 

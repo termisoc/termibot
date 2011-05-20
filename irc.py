@@ -41,7 +41,7 @@ class V6Server(socketserver.TCPServer):
 
 def main():
     addrinfo = socket.getaddrinfo(config['server'], config['port'])
-    sock = socket.socket(addrinfo[0][0],addrinfo[0][1],addrinfo[0][2])
+    sock = socket.socket(addrinfo[0][0])
     sock.connect(addrinfo[0][4])
 
     sendall_u(sock, "NICK {0}\r\n".format(config['nick']))
@@ -51,10 +51,10 @@ def main():
     if 'sockets' in config:
         for i in config['sockets']:
             addrinfo = socket.getaddrinfo(i[0],i[1])
-            if addrinfo[0][0] == 10:
-                s = V6Server(addrinfo[0][4], mktcphandler(sock))
-            else:
+            if addrinfo[0][0] == 2:
                 s = socketserver.TCPServer(addrinfo[0][4], mktcphandler(sock))
+            else:
+                s = V6Server(addrinfo[0][4], mktcphandler(sock))
             rxsocks.append(s)
 
     pids = []

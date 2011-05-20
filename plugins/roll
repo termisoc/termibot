@@ -1,0 +1,13 @@
+#!/usr/bin/env ruby
+
+def roll count,sides
+	return "#{sides}-sided die not available in this universe" if sides < 2
+	total=0
+	count = 1 unless count > 0
+	count.times { total += (rand(sides).to_i+1) }
+	return total
+end
+
+$stdin.readline # don't care about username etc.
+args = $stdin.readline.split
+puts args.map {|a| (count,sides)=a.split(/d/); (roll count.to_i, sides.to_i).to_s }.join(", ")

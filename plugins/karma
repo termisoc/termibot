@@ -46,7 +46,8 @@ def _filter(line, instance):
     return result
 
 def _total(item, instance):
-    count = db.group(None, {'item':item.lower(), 'instance':instance}, { 'sum': 0 }, 'function(obj,prev) { prev.sum += obj.direction; }', None)
+    item = re.compile(item,re.I)
+    count = db.group(None, {'item':item, 'instance':instance}, { 'sum': 0 }, 'function(obj,prev) { prev.sum += obj.direction; }', None)
     if len(count) > 0:
         return int(count[0]['sum'])
     return 0

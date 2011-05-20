@@ -11,7 +11,7 @@ import sys
 
 from subprocess import Popen, PIPE
 
-config = json.load(open("subvirc.conf"))
+config = json.load(open(sys.argv[1]))
 if not 'cmd_char' in config:
     config['cmd_char'] = '!'
 config['instance'] = config['nick']

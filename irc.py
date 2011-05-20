@@ -72,7 +72,17 @@ def main():
         sys.exit(0)
 
 def mainloop(sock):
-    for line in sock.makefile():
+    while True:
+        line = b''
+        while True:
+            c = sock.recv(1)
+            if c == b'\n':
+                break
+            line += c
+        try:
+            line = str(line, 'utf8')
+        except UnicodeDecodeError:
+            line = str(line,'iso-8859-1')
         line = line.strip()
         words = line.split()
 

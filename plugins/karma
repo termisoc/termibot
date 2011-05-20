@@ -15,6 +15,7 @@ def apply_karma(item, sign, reason, instance):
             'item': item,
             'direction': direction,
             'reason': reason,
+            'instance': instance,
             'timestamp': float(datetime.now().strftime("%s.%f")),
         }
     db.insert(obj)

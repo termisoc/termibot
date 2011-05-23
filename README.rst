@@ -1,6 +1,12 @@
 Plugin API
 ==========
 
+Plugins can be written in any language that the host machine can support. I'm
+trying to limit the core set to Python and POSIX shell, just to limit the
+number of dependencies, but there are currently also Ruby scripts. (You could
+also write them in a compiled language, but don't be such a dick. Unless it's
+Haskell.)
+
 Plugins recieve the name of the instance as their first argument, and other data on stdin.
 
 The first line on stdin consists of ``<nick>\t<username>\t<hostname>\t<full irc user/host string>``.

@@ -70,6 +70,13 @@ def _total(item, instance):
         return int(count[0]['sum'])
     return 0
 
+def _multi_total(items, instance):
+    items = re.compile(items, re.I)
+    count = db.group({'item': True}, {'item':items, 'instance':instance}, { 'sum': 0 }, 'function(obj,prev) { prev.sum += obj.direction; }', None)
+    if len(count) > 0:
+        return count
+    return []
+
 if __name__ == '__main__':
     nick, user, host, sender = sys.stdin.readline().split()[0:4]
     method = os.path.basename(sys.argv[0])
@@ -78,7 +85,15 @@ if __name__ == '__main__':
 
     if method == 'karma_filter':
         result = _filter(args, instance)
-        print(', '.join(['%(item)s %(direction)s (now %(total)s)' % item for item in result]))
+        if result != "":
+            print(', '.join(['%(item)s %(direction)s (now %(total)s)' % item for item in result]))
     elif method == 'karma':
         result = "; ".join(["%s: %s" % (i,_total(i, instance)) for i in _karma_find_words(args)])
-        print('karma totals: ' + result)
+        if result != "":
+            print('karma totals: ' + result)
+    elif method == 'karmasearch' or method == 'ks':
+        args = args.strip()
+        if len(args) > 0:
+            result = ", ".join(["%s: %s" % (i['item'], int(i['sum'])) for i in _multi_total(args, instance)])
+            if result != "":
+                print('karma totals: ' + result)

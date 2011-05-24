@@ -1,13 +1,24 @@
-#!/usr/bin/env ruby
+#!/usr/bin/env python3
 
-def roll count,sides
-	return "#{sides}-sided die not available in this universe" if sides < 2
-	total=0
-	count = 1 unless count > 0
-	count.times { total += (rand(sides).to_i+1) }
-	return total
-end
+import sys
+from random import randrange
 
-$stdin.readline # don't care about username etc.
-args = $stdin.readline.split
-puts args.map {|a| (count,sides)=a.split(/d/); (roll count.to_i, sides.to_i).to_s }.join(", ")
+def roll(count, sides):
+    count = 1 if count == '' else int(count)
+    sides = 6 if sides == '' else int(sides)
+
+    if sides < 2:
+        return '%s-sided die not available in this universe' % sides
+
+    rands = [randrange(1,sides+1) for i in range(count)]
+    if count > 1:
+        result = "%sd%s = %s (%s)" % (count, sides, sum(result), " + ".join([str(i) for i in rands]))
+    else:
+        result = "%sd%s = " % (count,sides) + str(rands[0])
+    return result
+
+sys.stdin.readline() # don't care about username etc.
+args = sys.stdin.readline().split()
+if len(args) == 0:
+    args = ['1d6']
+print('; '.join([roll(*(i.split('d'))) for i in args]))

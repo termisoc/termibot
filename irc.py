@@ -141,10 +141,14 @@ def handle_privmsg(sock, words):
             # todo: url filtering
             pass
 
-    if words[2] == config['nick']:
-        to = sender[0]
+    if len(list(filter((lambda x: x.strip() != ""),response))) == 0:
+        return
+    elif len(response) > 1:
+        for r in response:
+            sendall_u(sock,"PRIVMSG {0} :{1}\r\n".format(sender[0], r))
     else:
-        response = ["{0}: {1}".format(sender[0], r) for r in response]
-
-    for r in response:
-        sendall_u(sock,"PRIVMSG {0} :{1}\r\n".format(to, r))
+        if words[2] == config['nick']:
+            to = sender[0]
+        else:
+            response = "{0}: {1}".format(sender[0], response[0])
+        sendall_u(sock,"PRIVMSG {0} :{1}\r\n".format(to, response))

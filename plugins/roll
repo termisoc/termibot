@@ -12,6 +12,8 @@ def roll(count, sides):
 
     if sides < 2:
         return '%s-sided die not available in this universe' % sides
+    if count > 10:
+        count = 10
 
     rands = [randrange(1,sides+1) for i in range(count)]
     if count > 1:

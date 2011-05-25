@@ -4,8 +4,11 @@ import sys
 from random import randrange
 
 def roll(count, sides):
-    count = 1 if count == '' else int(count)
-    sides = 6 if sides == '' else int(sides)
+    try:
+        count = 1 if count == '' else int(count)
+        sides = 6 if sides == '' else int(sides)
+    except ValueError:
+        return "wtf, that's not a number"
 
     if sides < 2:
         return '%s-sided die not available in this universe' % sides

@@ -34,7 +34,10 @@ def _karma_find_words(line):
     simple_karma = r'\w{3,}'
     quoted_string = r'"(?:(?:\\.)|(?:[^"]))*"'
     karma_item = '(' + simple_karma + '|' + quoted_string + ')' + r'(?=(?:\s|$))'
-    karma_item_re = re.compile(karma_item)
+    try:
+        karma_item_re = re.compile(karma_item)
+    except:
+        return []
 
     items = [_karma_item_cleanup(i) for i in karma_item_re.findall(line.strip())]
     return items
@@ -45,7 +48,11 @@ def _karma_find_items(line):
     quoted_string = r'"(?:(?:\\.)|(?:[^"]))*"'
     karma_item = '(' + simple_karma + '|' + quoted_string + ')' + plusminus + r'(?=(?:\s|$))'
     karma_item_reason = karma_item + '( (?:for|because)' + '.+?' + '(?='+karma_item+'|$)|\([^\)]+\))?'
-    karma_item_re = re.compile(karma_item_reason)
+
+    try:
+        karma_item_re = re.compile(karma_item_reason)
+    except:
+        return []
 
     items = [list(i) for i in karma_item_re.findall(line.strip())]
     for item in items:
@@ -64,14 +71,20 @@ def _filter(line, instance):
     return result
 
 def _total(item, instance):
-    item = re.compile(item,re.I)
+    try:
+        item = re.compile(item,re.I)
+    except:
+        return 0
     count = db.group(None, {'item':item, 'instance':instance}, { 'sum': 0 }, 'function(obj,prev) { prev.sum += obj.direction; }', None)
     if len(count) > 0:
         return int(count[0]['sum'])
     return 0
 
 def _multi_total(items, instance):
-    items = re.compile(items, re.I)
+    try:
+        items = re.compile(items, re.I)
+    except:
+        return []
     count = db.group({'item': True}, {'item':items, 'instance':instance}, { 'sum': 0 }, 'function(obj,prev) { prev.sum += obj.direction; }', None)
     if len(count) > 0:
         return count
@@ -82,6 +95,9 @@ if __name__ == '__main__':
     method = os.path.basename(sys.argv[0])
     instance = sys.argv[1]
     args = sys.stdin.readline()
+
+    if len(args.strip()) == 0:
+        sys.exit()
 
     if method == 'karma_filter':
         result = _filter(args, instance)

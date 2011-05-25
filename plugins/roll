@@ -26,4 +26,9 @@ sys.stdin.readline() # don't care about username etc.
 args = sys.stdin.readline().split()
 if len(args) == 0:
     args = ['1d6']
-print('; '.join([roll(*(i.split('d'))) for i in args]))
+result = []
+for word in args:
+    (count, sides) = word.split('d',1)
+    result.append(roll(count, sides))
+if len(result) > 0:
+    print('; '.join(result))

@@ -106,6 +106,9 @@ def mainloop(sock):
                 handle_privmsg(sock, words)
 
 def run_command(sender, channel, cmd, words):
+    if re.search(r'[^A-Za-z0-9_]', cmd):
+        return ["ERROR: invalid command."]
+
     sender_parts = re.split(r'[:!@]', sender)
 
     cmd_path = os.path.join(os.path.dirname(sys.argv[0]), "plugins", cmd)

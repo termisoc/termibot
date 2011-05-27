@@ -104,7 +104,8 @@ if __name__ == '__main__':
         if result != "":
             print(', '.join(['%(item)s %(direction)s (now %(total)s)' % item for item in result]))
     elif method == 'karma':
-        result = "; ".join(["%s: %s" % (i.encode('utf-8'),_total(i, instance)) for i in _karma_find_words(args)])
+        words = [re.escape(word.decode('utf-8')) for word in _karma_find_words(args)]
+        result = u"; ".join([u"%s: %s" % (i,_total(i, instance)) for i in words])
         if result != "":
             print('karma totals: ' + result.encode('utf-8'))
     elif method == 'karmasearch' or method == 'ks':

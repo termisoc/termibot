@@ -72,7 +72,7 @@ def _filter(line, instance):
 
 def _total(item, instance):
     try:
-        item = re.compile(item,re.I)
+        item = re.compile('^'+item+'$',re.I)
     except:
         return 0
     count = db.group(None, {'item':item, 'instance':instance}, { 'sum': 0 }, 'function(obj,prev) { prev.sum += obj.direction; }', None)

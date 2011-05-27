@@ -58,7 +58,6 @@ def main():
             rxsocks.append(s)
 
     pids = []
-    atexit.register(lambda: [os.kill(p,15) for p in pids])
     try:
         pids.append(os.fork())
         if pids[-1] == 0:
@@ -70,6 +69,9 @@ def main():
         os.wait()
     except KeyboardInterrupt:
         sys.exit(0)
+    except:
+        for pid in pids:
+            os.kill(pid, 15)
 
 def mainloop(sock):
     while True:

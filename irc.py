@@ -150,8 +150,9 @@ def handle_privmsg(sock, words):
         for r in response:
             sendall_u(sock,"PRIVMSG {0} :{1}\r\n".format(sender[0], r))
     else:
+        response = response[0]
         if words[2] == config['nick']:
             to = sender[0]
         else:
-            response = "{0}: {1}".format(sender[0], response[0])
+            response = "{0}: {1}".format(sender[0], response)
         sendall_u(sock,"PRIVMSG {0} :{1}\r\n".format(to, response))

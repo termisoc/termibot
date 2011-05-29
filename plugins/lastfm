@@ -1,0 +1,25 @@
+#!/usr/bin/env python3
+
+import json
+import sys
+from urllib.request import urlopen
+
+def getRecentTracks(user):
+    url = "http://ws.audioscrobbler.com/2.0?method=user.getRecentTracks&user={0}&api_key=b25b959554ed76058ac220b7b2e0a026&format=json&limit=1".format(user)
+    data = json.loads(urlopen(url).read().decode("utf-8"))["recenttracks"]
+    try:
+        artist = data["track"]["artist"]["#text"]
+        title = data["track"]["name"]
+    except TypeError:
+        # What the cock, I said limit=1.
+        artist = data["track"][0]["artist"]["#text"]
+        title = data["track"][0]["name"]
+    return (artist, title)
+
+if __name__ == '__main__':
+    nick,user,host,mask = sys.stdin.readline().split()
+    username = sys.stdin.readline().strip()
+    if username == "":
+        username = nick
+    artist, title = getRecentTracks(username)
+    print("{0} last played {1} — {2}".format(username, artist, title))

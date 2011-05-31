@@ -73,14 +73,25 @@ def main():
         for pid in pids:
             os.kill(pid, 15)
 
+def linesplit(socket):
+    # from http://stackoverflow.com/questions/822001/python-sockets-buffering
+    buffer = socket.recv(4096) # thx!
+    done = False
+    while not done:
+        if b"\n" in buffer:
+            (line, buffer) = buffer.split(b"\n", 1)
+            yield line+b"\n"
+        else:
+            more = socket.recv(4096)
+            if not more:
+                done = True
+            else:
+                buffer = buffer+more
+    if buffer:
+        yield buffer
+
 def mainloop(sock):
-    while True:
-        line = b''
-        while True:
-            c = sock.recv(1)
-            if c == b'\n':
-                break
-            line += c
+    for line in linesplit(sock):
         try:
             line = str(line, 'utf8')
         except UnicodeDecodeError:

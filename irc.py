@@ -148,7 +148,7 @@ def handle_privmsg(sock, words):
     to = words[2]
 
     response = []
-    if words[3][1] == config['cmd_char']:
+    if len(words[3]) > 2 and words[3][1] == config['cmd_char']:
         response = run_command(words[0], to, words[3][2:], words[4:])
     else:
         if re.search(r'([+-]{2}|±)(\s|$)', " ".join(words[3:])):

@@ -16,7 +16,9 @@ if not 'cmd_char' in config:
     config['cmd_char'] = '!'
 config['instance'] = config['nick']
 
-sendall_u = lambda sock, data: sock.sendall(bytes(data, "utf-8"))
+def sendall_u(sock, data):
+    sock.sendall(bytes(data, "utf-8"))
+    print(data.strip())
 
 def mktcphandler(sock):
     class MyTCPHandler(socketserver.StreamRequestHandler):

@@ -19,6 +19,7 @@ config['instance'] = config['nick']
 def sendall_u(sock, data):
     sock.sendall(bytes(data, "utf-8"))
     print(data.strip())
+    sys.stdout.flush()
 
 def mktcphandler(sock):
     class MyTCPHandler(socketserver.StreamRequestHandler):
@@ -102,6 +103,7 @@ def mainloop(sock):
         words = line.split()
 
         print(line)
+        sys.stdout.flush()
 
         if words[1] == "433":
             # nickname already in use.

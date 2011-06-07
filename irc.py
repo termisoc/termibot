@@ -5,6 +5,7 @@ import json
 import os
 import re
 import select
+import signal
 import socket
 import socketserver
 import sys
@@ -61,20 +62,23 @@ def main():
             rxsocks.append(s)
 
     pids = []
+    signal.signal(signal.SIGTERM, lambda s, f: [os.kill(p, signal.SIGTERM) for p in pids])
     try:
         pids.append(os.fork())
         if pids[-1] == 0:
-            mainloop(sock) or sys.exit(1)
+            mainloop(sock)
+            for pid in pids:
+                os.kill(pid, signal.SIGTERM)
+            sys.exit()
         for rxsock in rxsocks:
             pids.append(os.fork())
             if pids[-1] == 0:
-                rxsock.serve_forever() or sys.exit(2)
+                rxsock.serve_forever()
         os.wait()
     except KeyboardInterrupt:
-        sys.exit(0)
-    except:
         for pid in pids:
-            os.kill(pid, 15)
+            os.kill(pid, signal.SIGTERM)
+        sys.exit()
 
 def linesplit(socket):
     # from http://stackoverflow.com/questions/822001/python-sockets-buffering
@@ -120,7 +124,11 @@ def mainloop(sock):
             sys.exit(1)
         elif words[1] == "PRIVMSG":
             if os.fork() == 0:
-                handle_privmsg(sock, words)
+                if os.fork() == 0:
+                    handle_privmsg(sock, words)
+                    sys.exit()
+                sys.exit()
+            os.wait()
 
 def run_command(sender, channel, cmd, words):
     if re.search(r'[^A-Za-z0-9_]', cmd):

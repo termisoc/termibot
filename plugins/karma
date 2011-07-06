@@ -7,7 +7,6 @@ from datetime import datetime
 import pymongo as mongo
 
 m = mongo.connection.Connection()
-db = m.subvirc.karma
 
 def apply_karma(item, sign, reason, instance):
     direction = 1 if sign == '++' else -1 if sign == '--' else 0
@@ -16,10 +15,9 @@ def apply_karma(item, sign, reason, instance):
             'item_lc': item.lower(),
             'direction': direction,
             'reason': reason,
-            'instance': instance,
             'timestamp': float(datetime.now().strftime("%s.%f")),
         }
-    db.insert(obj)
+    m[instance].karma.insert(obj)
 
     obj['total'] = _total(item, instance)
     return obj
@@ -72,7 +70,7 @@ def _filter(line, instance):
     return result
 
 def _total(item, instance):
-    count = db.group(None, {'item_lc':item.lower(), 'instance':instance}, { 'sum': 0 }, 'function(obj,prev) { prev.sum += obj.direction; }', None)
+    count = m[instance].karma.group(None, {'item_lc':item.lower()}, { 'sum': 0 }, 'function(obj,prev) { prev.sum += obj.direction; }', None)
     if len(count) > 0:
         return int(count[0]['sum'])
     return 0
@@ -82,7 +80,7 @@ def _multi_total(items, instance):
         items = re.compile(items, re.I)
     except:
         return []
-    count = db.group({'item_lc': True}, {'item':items, 'instance':instance}, { 'sum': 0 }, 'function(obj,prev) { prev.sum += obj.direction; }', None)
+    count = m[instance].karma.group({'item_lc': True}, {'item':items}, { 'sum': 0 }, 'function(obj,prev) { prev.sum += obj.direction; }', None)
     if len(count) > 0:
         return count
     return []

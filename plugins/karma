@@ -13,6 +13,7 @@ def apply_karma(item, sign, reason, instance):
     direction = 1 if sign == '++' else -1 if sign == '--' else 0
     obj = {
             'item': item,
+            'item_lc': item.lower(),
             'direction': direction,
             'reason': reason,
             'instance': instance,
@@ -71,11 +72,7 @@ def _filter(line, instance):
     return result
 
 def _total(item, instance):
-    try:
-        item = re.compile('^'+item+'$',re.I)
-    except:
-        return 0
-    count = db.group(None, {'item':item, 'instance':instance}, { 'sum': 0 }, 'function(obj,prev) { prev.sum += obj.direction; }', None)
+    count = db.group(None, {'item_lc':item.lower(), 'instance':instance}, { 'sum': 0 }, 'function(obj,prev) { prev.sum += obj.direction; }', None)
     if len(count) > 0:
         return int(count[0]['sum'])
     return 0
@@ -85,7 +82,7 @@ def _multi_total(items, instance):
         items = re.compile(items, re.I)
     except:
         return []
-    count = db.group({'item': True}, {'item':items, 'instance':instance}, { 'sum': 0 }, 'function(obj,prev) { prev.sum += obj.direction; }', None)
+    count = db.group({'item_lc': True}, {'item':items, 'instance':instance}, { 'sum': 0 }, 'function(obj,prev) { prev.sum += obj.direction; }', None)
     if len(count) > 0:
         return count
     return []
@@ -111,6 +108,6 @@ if __name__ == '__main__':
     elif method == 'karmasearch' or method == 'ks':
         args = args.strip()
         if len(args) > 0:
-            result = ", ".join(["%s: %s" % (i['item'], int(i['sum'])) for i in _multi_total(args, instance)])
+            result = ", ".join(["%s: %s" % (i['item_lc'], int(i['sum'])) for i in _multi_total(args, instance)])
             if result != "":
                 print('karma totals: ' + result.encode('utf-8'))

@@ -9,6 +9,7 @@ import signal
 import socket
 import socketserver
 import sys
+import threading
 
 from subprocess import Popen, PIPE
 
@@ -61,23 +62,22 @@ def main():
                 s = V6Server(addrinfo[0][4], mktcphandler(sock))
             rxsocks.append(s)
 
-    pids = []
-    signal.signal(signal.SIGTERM, lambda s, f: [os.kill(p, signal.SIGTERM) for p in pids])
+    threads = []
     try:
-        pids.append(os.fork())
-        if pids[-1] == 0:
-            mainloop(sock)
-            for pid in pids:
-                os.kill(pid, signal.SIGTERM)
-            sys.exit()
+        main_thread = threading.Thread(target=mainloop, args=(sock,), name="mainloop")
+        threads.append(main_thread)
+        main_thread.daemon = True
+        main_thread.start()
+
         for rxsock in rxsocks:
-            pids.append(os.fork())
-            if pids[-1] == 0:
-                rxsock.serve_forever()
-        os.wait()
+            threads.append(threading.Thread(target=rxsock.serve_forever, name=rxsock.server_address[0]+":"+str(rxsock.server_address[1])))
+            threads[-1].daemon = True
+            threads[-1].start()
+
+        while main_thread.is_alive():
+            main_thread.join(2**64)
+        sys.exit()
     except KeyboardInterrupt:
-        for pid in pids:
-            os.kill(pid, signal.SIGTERM)
         sys.exit()
 
 def linesplit(socket):
@@ -121,14 +121,11 @@ def mainloop(sock):
             sendall_u(sock,"PONG {0}\r\n".format(words[1]))
         elif len(words) > 3 and words[3] == ":" + config['cmd_char'] + "quit":
             sendall_u(sock,"QUIT :Received " + config['cmd_char'] + "quit command.\r\n")
-            sys.exit(1)
+            sys.exit()
         elif words[1] == "PRIVMSG":
-            if os.fork() == 0:
-                if os.fork() == 0:
-                    handle_privmsg(sock, words)
-                    sys.exit()
-                sys.exit()
-            os.wait()
+            privmsg_thread = threading.Thread(target=handle_privmsg, args=(sock,words))
+            privmsg_thread.daemon=True
+            privmsg_thread.start()
 
 def run_command(sender, channel, cmd, words):
     if re.search(r'[^A-Za-z0-9_]', cmd):

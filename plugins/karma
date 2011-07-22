@@ -39,7 +39,7 @@ def _karma_find_words(line):
     except:
         return []
 
-    items = [_karma_item_cleanup(i) for i in karma_item_re.findall(line.strip())]
+    items = [_karma_item_cleanup(i) for i in karma_item_re.findall(line)]
     return items
 
 def _karma_find_items(line):
@@ -61,7 +61,7 @@ def _karma_find_items(line):
     return items
 
 def _filter(line):
-    items = _karma_find_items(line.strip())
+    items = _karma_find_items(line)
     result = []
     for item in items:
         karma, sign, reason = item[0:3]
@@ -86,10 +86,11 @@ def _multi_total(items):
         return count
     return []
 
+import cProfile
 if __name__ == '__main__':
     nick, user, host, sender = sys.stdin.readline().split()[0:4]
     method = os.path.basename(sys.argv[0])
-    args = sys.stdin.readline()
+    args = sys.stdin.readline().strip()
 
     if len(args.strip()) == 0:
         sys.exit()
@@ -99,7 +100,7 @@ if __name__ == '__main__':
         if result != "":
             print(', '.join(['%(item)s %(direction)s (now %(total)s)' % item for item in result]))
     elif method == 'karma':
-        words = [re.escape(word.decode('utf-8')) for word in _karma_find_words(args)]
+        words = [word.decode('utf-8') for word in _karma_find_words(args)]
         result = u"; ".join([u"%s: %s" % (i,_total(i)) for i in words])
         if result != "":
             print('karma totals: ' + result.encode('utf-8'))

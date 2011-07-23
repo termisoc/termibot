@@ -163,8 +163,7 @@ def handle_privmsg(sock, words):
         if re.search(r'([+-]{2}|±)(\s|$)', " ".join(words[3:])):
             response += run_command(words[0], to, "karma_filter", [words[3][1:]] + words[4:])
         if re.search(r'https?://', " ".join(words[3:])):
-            # todo: url filtering
-            pass
+            response += run_command(words[0], to, "url_filter", [words[3][1:]] + words[4:])
 
     if len(list(filter((lambda x: x.strip() != ""),response))) == 0:
         return

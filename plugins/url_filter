@@ -1,0 +1,49 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+import sys, re, commands, urllib, html5lib
+from datetime import datetime
+
+import pymongo as mongo
+
+m = mongo.connection.Connection()
+db = m[sys.argv[1]].urls
+
+
+class MyUrlOpener(urllib.FancyURLopener):
+    version = "Mozilla/4.0"
+urllib._urlopener=MyUrlOpener()
+
+
+def parse(line):
+    uri_prefix = r'((http://|https://|ftp://)[\w\-\@;\/?:&=%\$_.+!*\x27(),~#]+[\w\-\@;\/?&=%\$_+!*\x27()~])'
+    uri_re = re.compile(uri_prefix)
+    return uri_re.findall(line)
+
+def shorten(url):
+    data = urllib.urlopen("http://ur1.ca/",data=urllib.urlencode({'longurl':url})).read()
+    xml = html5lib.HTMLParser(tree=html5lib.treebuilders.getTreeBuilder("etree"), namespaceHTMLElements=False).parse(data)
+    return xml.find(".//p/a").text.strip()
+
+def gettitle(url):
+    data = urllib.urlopen(url).read()
+    xml = html5lib.HTMLParser(tree=html5lib.treebuilders.getTreeBuilder("etree"), namespaceHTMLElements=False).parse(data)
+    return re.sub(r"[\n\s]+"," ", xml.find(".//title").text.strip())
+
+def lookup(url, nick):
+    # if url in database return database[url].{short,timestamp}
+    res = db.find({'url': url})
+    if res.count():
+        timestamp = datetime.fromtimestamp(res[0]['timestamp']).strftime("%b %d, %Y at %H:%M")
+        return u"[ %s — %s ] (first posted by %s at %s)" % (res[0]['short_url'], gettitle(url), res[0]['nick'], timestamp)
+    else:
+        # else shorten, store with timestamp
+        short = shorten(url)
+        db.insert({'url': url, 'timestamp': float(datetime.now().strftime("%s.%f")), 'nick': nick, 'short_url': short})
+        return u"[ %s — %s ]" % (short, gettitle(url))
+
+if __name__ == '__main__':
+    nick, user, host, sender = sys.stdin.readline().split()[0:4]
+    line = sys.stdin.readline().strip()
+    urls = [url[0] for url in parse(line)]
+    print "\n".join([lookup(url, nick) for url in urls])

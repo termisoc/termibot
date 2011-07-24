@@ -9,13 +9,22 @@ Haskell.)
 
 Plugins recieve the name of the instance as their first argument, and other data on stdin.
 
-The first line on stdin consists of ``<nick>\t<username>\t<hostname>\t<full irc user/host string>``.
+The first line on stdin consists of ``<nick>\t<username>\t<hostname>\t<full irc user/host string>\t<channel>``, where ``channel`` is either the channel in which the command was sent or the user who sent the command via a query.
+
 The second consists of all the arguments given to the command.
 
-Anything you send to stdout will be printed into the channel the plugin was
-called from, prefixed with the username (so you don't need to add the username
-to the reply yourself). The same goes for stderr, which will additionally be
-prefixed with ERROR.
+Anything sent to stdout will be treated as a response, subject to the following rules:
+
+- if the first word starts with ``#`` it will be assumed to be a channel; the
+  entire output line, minus the first word, will be sent to that channel.
+- if the first word starts with ``@`` it will assumed to prefix a username; the
+  entire output line, minus the first word, will be sent in a query to that
+  user.
+- otherwise, the entire output line will be sent either in a query to the user
+  (if the command was received via a query), or to the channel in which the
+  command was received, prefixed with the username of the sender.
+
+Anything sent to stderr will be sent in a query to the user who sent the command.
 
 Command Socket
 ==============
@@ -24,5 +33,6 @@ If configured to listen on a network socket (127.0.0.1/[::1] port 12345, in the
 example configuration), you can send text to it  (e.g., the output of
 external/asynchronous commands).
 
-Lines should start with either the name of a channel to send the message to,
-or``@username`` to send to an individual.
+Lines are parsed in the same way as described above, under **Plugin API**,
+except that lines that do not specify a user or channel will be silently
+ignored.

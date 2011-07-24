@@ -27,7 +27,7 @@ def shorten(url):
 
 def gettitle(url):
     data = urllib.urlopen(url)
-    ctype = data.info()["Content-Type"]
+    ctype = data.info()["Content-Type"].split(";")[0]
     if ctype in ["text/html", "application/xhtml+xml"]:
         xml = html5lib.HTMLParser(tree=html5lib.treebuilders.getTreeBuilder("etree"), namespaceHTMLElements=False).parse(data.read())
         return re.sub(r"[\n\s]+"," ", xml.find(".//title").text.strip())

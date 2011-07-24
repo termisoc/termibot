@@ -43,7 +43,8 @@ def lookup(url, nick):
         return u"[ %s — %s ]" % (short, gettitle(url))
 
 if __name__ == '__main__':
-    nick, user, host, sender = sys.stdin.readline().split()[0:4]
+    nick, user, host, sender, channel = sys.stdin.readline().split()[0:5]
     line = sys.stdin.readline().strip()
     urls = [url[0] for url in parse(line)]
-    print "\n".join([lookup(url, nick) for url in urls])
+    for url in urls:
+        print (channel + u" " + lookup(url, nick)).encode("utf-8")

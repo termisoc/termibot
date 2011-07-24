@@ -129,9 +129,11 @@ def mainloop(sock):
 
 def run_command(sender, channel, cmd, words):
     if re.search(r'[^A-Za-z0-9_]', cmd):
-        return ["ERROR: invalid command."]
+        return (["ERROR: invalid command."],)
 
     sender_parts = re.split(r'[:!@]', sender)
+
+    response_channel = channel if not channel == config['nick'] else '@'+sender_parts[1]
 
     cmd_path = os.path.join(os.path.dirname(sys.argv[0]), "plugins", cmd)
     if not os.path.exists(cmd_path):
@@ -140,16 +142,17 @@ def run_command(sender, channel, cmd, words):
 
     w = lambda s: p.stdin.write(bytes(s, 'utf-8'))
     w("\t".join(sender_parts))
-    w("\t" + sender + "\n")
+    w("\t" + sender + "\t" + response_channel + "\n")
     w(" ".join(words) + "\n")
     p.stdin.close()
 
     response = []
+    error = []
     for line in p.stderr:
-        response.append("ERROR: " + str(line, "utf-8"))
+        error.append(str(line, "utf-8"))
     for line in p.stdout:
         response.append(str(line, "utf-8"))
-    return response
+    return response, error
 
 def handle_privmsg(sock, words):
     sender = re.split(r'[:!@]', words[0])
@@ -157,23 +160,34 @@ def handle_privmsg(sock, words):
     to = words[2]
 
     response = []
+    error = []
     if len(words[3]) > 2 and words[3][1] == config['cmd_char']:
-        response = run_command(words[0], to, words[3][2:], words[4:])
+        (response, error) = run_command(words[0], to, words[3][2:], words[4:])
     else:
         if re.search(r'([+-]{2}|±)(\s|$)', " ".join(words[3:])):
-            response += run_command(words[0], to, "karma_filter", [words[3][1:]] + words[4:])
+            (r,e) = run_command(words[0], to, "karma_filter", [words[3][1:]] + words[4:])
+            response += r; error += e
         if re.search(r'https?://', " ".join(words[3:])):
-            response += run_command(words[0], to, "url_filter", [words[3][1:]] + words[4:])
+            (r,e) = run_command(words[0], to, "url_filter", [words[3][1:]] + words[4:])
+            response += r; error += e
+
+    if len(error):
+        for line in error:
+            sendall_u(sock,"PRIVMSG {0} :{1}\r\n".format(sender[0], line))
 
     if len(list(filter((lambda x: x.strip() != ""),response))) == 0:
         return
-    elif len(response) > 1:
-        for r in response:
-            sendall_u(sock,"PRIVMSG {0} :{1}\r\n".format(sender[0], r))
     else:
-        response = response[0]
-        if words[2] == config['nick']:
-            to = sender[0]
-        else:
-            response = "{0}: {1}".format(sender[0], response)
-        sendall_u(sock,"PRIVMSG {0} :{1}\r\n".format(to, response))
+        for line in response:
+            rwords = line.split()
+            if rwords[0][0] == '@':
+                sendall_u(sock, 'PRIVMSG {0} :{1}\r\n'.format(rwords[0][1:], " ".join(rwords[1:])))
+            elif rwords[0][0] == '#':
+                sendall_u(sock, 'PRIVMSG {0} :{1}\r\n'.format(rwords[0], " ".join(rwords[1:])))
+            else:
+                # just send back to the sender, in the right channel.
+                if words[2] == config['nick']:
+                    to = sender[0]
+                else:
+                    line = "{0}: {1}".format(sender[0], line)
+                sendall_u(sock,"PRIVMSG {0} :{1}\r\n".format(to, line))

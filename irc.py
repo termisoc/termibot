@@ -75,7 +75,7 @@ def main():
             threads[-1].start()
 
         while main_thread.is_alive():
-            main_thread.join(2**64)
+            main_thread.join(2**32)
         sys.exit()
     except KeyboardInterrupt:
         sys.exit()

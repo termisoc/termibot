@@ -43,7 +43,7 @@ def lookup(url, nick):
     res = db.find({'url': url})
     if res.count():
         timestamp = datetime.fromtimestamp(res[0]['timestamp']).strftime("%b %d, %Y at %H:%M")
-        return u"[ %s — %s ] (first posted by %s at %s)" % (res[0]['short_url'], gettitle(url), res[0]['nick'], timestamp)
+        return u"[ %s — %s ] (first posted by %s at %s)" % (res[0]['short_url'], gettitle(url), res[0]['nick'][0]+"\x0f"+res[0]['nick'][1:], timestamp)
     else:
         # else shorten, store with timestamp
         short = shorten(url)

@@ -131,9 +131,9 @@ def run_command(sender, channel, cmd, words):
     if re.search(r'[^A-Za-z0-9_]', cmd):
         return (["ERROR: invalid command."],)
 
-    sender_parts = re.split(r'[:!@]', sender)
+    sender_parts = re.split(r'[:!@]', sender)[1:] # 0 is the empty string
 
-    response_channel = channel if not channel == config['nick'] else '@'+sender_parts[1]
+    response_channel = channel if not channel == config['nick'] else '@'+sender_parts[0]
 
     cmd_path = os.path.join(os.path.dirname(sys.argv[0]), "plugins", cmd)
     if not os.path.exists(cmd_path):

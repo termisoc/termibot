@@ -1,18 +1,48 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import sys, re, commands, urllib, html5lib
+import sys, re, urllib.request, urllib.parse, urllib.error
+
+from html.parser import HTMLParser
 from datetime import datetime
 
-import pymongo as mongo
+import postgresql.driver.dbapi20 as postgresql
+conn = postgresql.connect(database=sys.argv[1], user='termibot', password='PASSWORD', host='127.0.0.1')
+cur = conn.cursor()
 
-m = mongo.connection.Connection()
-db = m[sys.argv[1]].urls
 
-
-class MyUrlOpener(urllib.FancyURLopener):
+class MyUrlOpener(urllib.request.FancyURLopener):
     version = "Mozilla/4.0"
-urllib._urlopener=MyUrlOpener()
+urllib.request._urlopener=MyUrlOpener()
+
+
+class TitleParser(HTMLParser):
+    title = None
+    url = None
+    _in_title = False
+    _in_p_class = False
+
+    def handle_starttag(self, tag, attrs):
+        if tag == 'title':
+            self._in_title = True
+        elif tag == 'p':
+            for attr in attrs:
+                if attr[0] == 'class' and attr[1] == 'success':
+                    self._in_p_class = True
+                    break
+        elif self._in_p_class and tag == 'a':
+            for attr in attrs:
+                if attr[0] == 'href':
+                    self.url = attr[1]
+                    break
+    def handle_endtag(self, tag):
+        if tag == 'title':
+            self._in_title = False
+        elif tag == 'p':
+            self._in_p_class = False
+    def handle_data(self, data):
+        if self._in_title:
+            self.title = data
 
 
 def parse(line):
@@ -21,18 +51,34 @@ def parse(line):
     return uri_re.findall(line)
 
 def shorten(url):
-    data = urllib.urlopen("http://ur1.ca/",data=urllib.urlencode({'longurl':url})).read()
-    xml = html5lib.HTMLParser(tree=html5lib.treebuilders.getTreeBuilder("etree"), namespaceHTMLElements=False).parse(data)
-    return xml.find(".//p/a").text.strip()
+    try:
+        data = urllib.request.urlopen("http://ur1.ca/",data=urllib.parse.urlencode({'longurl':url})).read()
+    except:
+        return ""
+
+    parser = TitleParser()
+    parser.feed(data.decode("utf-8"))
+    return parser.url.strip()
 
 def gettitle(url):
-    data = urllib.urlopen(url)
-    ctype = data.info()["Content-Type"].split(";")[0]
+    try:
+        data = urllib.request.urlopen(url)
+    except:
+        return "unknown"
+
+    ctype = data.info()["Content-Type"]
+    if ";" in ctype:
+        (ctype, charset) = data.info()["Content-Type"].split(";")
+        charset = charset.split("=")[1].lower()
+    else:
+        charset = 'utf-8'
+
     if ctype in ["text/html", "application/xhtml+xml"]:
-        xml = html5lib.HTMLParser(tree=html5lib.treebuilders.getTreeBuilder("etree"), namespaceHTMLElements=False).parse(data.read())
-        title = xml.find(".//title")
+        parser = TitleParser()
+        parser.feed(data.read().decode(charset))
+        title = parser.title
         if title != None:
-            return re.sub(r"[\n\s]+"," ", title.text.strip())
+            return re.sub(r"[\n\s]+"," ", title.strip())
         else:
             return "(%s)" % ctype
     else:
@@ -40,19 +86,21 @@ def gettitle(url):
 
 def lookup(url, nick):
     # if url in database return database[url].{short,timestamp}
-    res = db.find({'url': url})
-    if res.count():
-        timestamp = datetime.fromtimestamp(res[0]['timestamp']).strftime("%b %d, %Y at %H:%M")
-        return u"[ %s — %s ] (first posted by %s at %s)" % (res[0]['short_url'], gettitle(url), res[0]['nick'][0]+"\x0f"+res[0]['nick'][1:], timestamp)
+    cur.execute('SELECT * FROM urls WHERE LOWER(url) = LOWER(%s)', (url,))
+    res = cur.fetchone()
+    if res:
+        timestamp = res[1].strftime("%b %d, %Y at %H:%M")
+        return "[ %s — %s ] (first posted by %s at %s)" % (res[2], gettitle(url), res[3][0]+"\x0f"+res[3][1:], timestamp)
     else:
         # else shorten, store with timestamp
         short = shorten(url)
-        db.insert({'url': url, 'timestamp': float(datetime.now().strftime("%s.%f")), 'nick': nick, 'short_url': short})
-        return u"[ %s — %s ]" % (short, gettitle(url))
+        cur.execute('INSERT INTO urls VALUES(%s, %s, %s, %s)', (url, datetime.now(), short, nick))
+        conn.commit()
+        return "[ %s — %s ]" % (short, gettitle(url))
 
 if __name__ == '__main__':
     nick, user, host, sender, channel = sys.stdin.readline().split()[0:5]
     line = sys.stdin.readline().strip()
     urls = [url[0] for url in parse(line)]
     for url in urls:
-        print (channel + u" " + lookup(url, nick)).encode("utf-8")
+        print(channel + " " + lookup(url, nick))

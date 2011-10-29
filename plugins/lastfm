@@ -17,7 +17,7 @@ def getRecentTracks(user):
     return (artist, title)
 
 if __name__ == '__main__':
-    nick,user,host,mask = sys.stdin.readline().split()
+    nick,user,host,mask,channel = sys.stdin.readline().split()
     username = sys.stdin.readline().strip()
     if username == "":
         username = nick

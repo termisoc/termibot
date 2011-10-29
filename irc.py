@@ -10,6 +10,7 @@ import socket
 import socketserver
 import sys
 import threading
+import time
 
 from subprocess import Popen, PIPE
 
@@ -115,6 +116,7 @@ def mainloop(sock):
             sendall_u(sock,"NICK {0}\r\n".format(config['nick']))
         elif words[1] == "376":
             # end of motd.
+            time.sleep(2)
             for channel in config['channels']:
                 sendall_u(sock,"JOIN {0}\r\n".format(channel))
         elif words[0] == "PING":

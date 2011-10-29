@@ -12,6 +12,8 @@ cur = conn.cursor()
 
 class MyUrlOpener(urllib.request.FancyURLopener):
     version = "Mozilla/4.0"
+    def prompt_user_passwd(self, host, realm):
+        pass
 urllib.request._urlopener=MyUrlOpener()
 
 

@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 
 import sys, re, os
-from datetime import datetime
 
 import postgresql.driver.dbapi20 as postgresql
 conn = postgresql.connect(database=sys.argv[1], user='termibot', password='PASSWORD', host='127.0.0.1')
@@ -33,10 +32,9 @@ def apply_karma(item, sign, reason):
             'item_lc': item.lower(),
             'direction': direction,
             'reason': reason,
-            'timestamp': float(datetime.now().strftime("%s.%f")),
         }
 
-    cur.execute("INSERT INTO karma VALUES(%s, %s, %s, %s);", (item, datetime.now(), direction, reason))
+    cur.execute("INSERT INTO karma VALUES(%s, NOW(), %s, %s);", (item, direction, reason))
     conn.commit()
 
     obj['total'] = _total(item)

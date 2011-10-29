@@ -4,7 +4,6 @@
 import sys, re, urllib.request, urllib.parse, urllib.error
 
 from html.parser import HTMLParser
-from datetime import datetime
 
 import postgresql.driver.dbapi20 as postgresql
 conn = postgresql.connect(database=sys.argv[1], user='termibot', password='PASSWORD', host='127.0.0.1')
@@ -94,7 +93,7 @@ def lookup(url, nick):
     else:
         # else shorten, store with timestamp
         short = shorten(url)
-        cur.execute('INSERT INTO urls VALUES(%s, %s, %s, %s)', (url, datetime.now(), short, nick))
+        cur.execute('INSERT INTO urls VALUES(%s, NOW(), %s, %s)', (url, short, nick))
         conn.commit()
         return "[ %s — %s ]" % (short, gettitle(url))
 

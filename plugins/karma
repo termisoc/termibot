@@ -6,11 +6,30 @@ from datetime import datetime
 
 import pymongo as mongo
 
-m = mongo.connection.Connection()
-db = m[sys.argv[1]].karma
+import psycopg2
+conn = psycopg2.connect("dbname=%s user=termibot password=PASSWORD host=127.0.0.1" % sys.argv[1])
+cur = conn.cursor()
+
+plusminus = r'([+-]{2}|±)'
+simple_karma = r'\w{2,}'
+quoted_string = r'"(?:(?:\\.)|(?:[^"]))*"'
+karma_word = '(' + simple_karma + '|' + quoted_string + ')' + r'(?=(?:\s|$))'
+karma_item = '(' + simple_karma + '|' + quoted_string + ')' + plusminus + r'(?=(?:\s|$))'
+karma_item_reason = karma_item + '( (?:for|because)' + '.+?' + '(?='+karma_item+'|$)|\([^\)]+\))?'
+
+try:
+    karma_word_re = re.compile(karma_word)
+except:
+    sys.exit(1)
+try:
+    karma_item_re = re.compile(karma_item_reason)
+except:
+    sys.exit(1)
 
 def apply_karma(item, sign, reason):
     direction = 1 if sign == '++' else -1 if sign == '--' else 0
+
+    item = _apply_mapping(item)
     obj = {
             'item': item,
             'item_lc': item.lower(),
@@ -18,7 +37,9 @@ def apply_karma(item, sign, reason):
             'reason': reason,
             'timestamp': float(datetime.now().strftime("%s.%f")),
         }
-    db.insert(obj)
+
+    cur.execute("INSERT INTO karma VALUES(%s, %s, %s, %s);", (item, datetime.now(), direction, reason))
+    conn.commit()
 
     obj['total'] = _total(item)
     return obj
@@ -31,29 +52,10 @@ def _karma_item_cleanup(item):
     return item
 
 def _karma_find_words(line):
-    simple_karma = r'\w{3,}'
-    quoted_string = r'"(?:(?:\\.)|(?:[^"]))*"'
-    karma_item = '(' + simple_karma + '|' + quoted_string + ')' + r'(?=(?:\s|$))'
-    try:
-        karma_item_re = re.compile(karma_item)
-    except:
-        return []
-
-    items = [_karma_item_cleanup(i) for i in karma_item_re.findall(line)]
+    items = [_karma_item_cleanup(i) for i in karma_word_re.findall(line)]
     return items
 
 def _karma_find_items(line):
-    plusminus = r'([+-]{2}|±)'
-    simple_karma = r'\w{3,}'
-    quoted_string = r'"(?:(?:\\.)|(?:[^"]))*"'
-    karma_item = '(' + simple_karma + '|' + quoted_string + ')' + plusminus + r'(?=(?:\s|$))'
-    karma_item_reason = karma_item + '( (?:for|because)' + '.+?' + '(?='+karma_item+'|$)|\([^\)]+\))?'
-
-    try:
-        karma_item_re = re.compile(karma_item_reason)
-    except:
-        return []
-
     items = [list(i) for i in karma_item_re.findall(line.strip())]
     for item in items:
         item[0] = _karma_item_cleanup(item[0])
@@ -71,22 +73,40 @@ def _filter(line):
     return result
 
 def _total(item):
-    count = db.group(None, {'item_lc':item.lower()}, { 'sum': 0 }, 'function(obj,prev) { prev.sum += obj.direction; }', None)
-    if len(count) > 0:
-        return int(count[0]['sum'])
-    return 0
+    cur.execute('SELECT SUM(direction) FROM karma WHERE LOWER(item) = LOWER(%s)', (item,))
+    return cur.fetchone()[0]
 
 def _multi_total(items):
-    try:
-        items = re.compile(items, re.I)
-    except:
-        return []
-    count = db.group({'item_lc': True}, {'item':items}, { 'sum': 0 }, 'function(obj,prev) { prev.sum += obj.direction; }', None)
-    if len(count) > 0:
-        return count
-    return []
+    cur.execute('SELECT item,SUM(direction) FROM karma WHERE LOWER(item) ~ %s GROUP BY item', (items,))
+    return cur.fetchall()
 
-import cProfile
+def _add_mapping(from_name, to_name):
+    from_name = re.sub("_"," ",from_name)
+    to_name = re.sub("_"," ",to_name)
+    if not _get_mapping(from_name):
+        cur.execute('INSERT INTO karma_maps VALUES(%s, %s)', (from_name, to_name))
+        conn.commit()
+        return True
+
+def _get_mapping(from_name):
+    cur.execute('SELECT to_name FROM karma_maps WHERE LOWER(from_name) = LOWER(%s)', (from_name,))
+    res = cur.fetchone()
+    if res:
+        return res[0]
+
+def _apply_mapping(from_name):
+    res = _get_mapping(from_name)
+    if res:
+        return res
+    else:
+        return from_name
+
+def _del_mapping(from_name):
+    cur.execute('DELETE FROM karma_maps WHERE LOWER(from_name) = LOWER(%s)', (from_name,))
+    conn.commit()
+    return True
+
+
 if __name__ == '__main__':
     nick, user, host, sender = sys.stdin.readline().split()[0:4]
     method = os.path.basename(sys.argv[0])
@@ -101,12 +121,27 @@ if __name__ == '__main__':
             print(', '.join(['%(item)s %(direction)s (now %(total)s)' % item for item in result]))
     elif method == 'karma':
         words = [word.decode('utf-8') for word in _karma_find_words(args)]
+        words = [_apply_mapping(word) for word in words]
         result = u"; ".join([u"%s: %s" % (i,_total(i)) for i in words])
         if result != "":
             print('karma totals: ' + result.encode('utf-8'))
     elif method == 'karmasearch' or method == 'ks':
         args = args.strip()
         if len(args) > 0:
-            result = ", ".join(["%s: %s" % (i['item_lc'], int(i['sum'])) for i in _multi_total(args)])
+            result = ", ".join([("%s: %s" % i) for i in _multi_total(args)])
             if result != "":
-                print('karma totals: ' + result.encode('utf-8'))
+                print('karma totals: ' + result)
+    elif method == 'karmamap':
+        args = _karma_find_words(args)
+        subcmd = args.pop(0)
+        if subcmd == 'add':
+            if _add_mapping(args[0],args[1]):
+                print("added mapping %s -> %s" %(args[0],args[1]))
+            else:
+                print("failed to add mapping for %s (current mapping: %s)" % (args[0], _get_mapping(args[0])))
+        elif subcmd == 'show':
+            print("mapping for %s: %s" % (args[0], _get_mapping(args[0])))
+        elif subcmd == 'del':
+            to_name = _apply_mapping(args[0])
+            if to_name and _del_mapping(args[0]):
+                print("deleted mapping: %s -> %s" % (args[0], to_name))

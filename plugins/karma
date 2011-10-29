@@ -1,13 +1,11 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 import sys, re, os
 from datetime import datetime
 
-import pymongo as mongo
-
-import psycopg2
-conn = psycopg2.connect("dbname=%s user=termibot password=PASSWORD host=127.0.0.1" % sys.argv[1])
+import postgresql.driver.dbapi20 as postgresql
+conn = postgresql.connect(database=sys.argv[1], user='termibot', password='PASSWORD', host='127.0.0.1')
 cur = conn.cursor()
 
 plusminus = r'([+-]{2}|±)'
@@ -120,11 +118,11 @@ if __name__ == '__main__':
         if result != "":
             print(', '.join(['%(item)s %(direction)s (now %(total)s)' % item for item in result]))
     elif method == 'karma':
-        words = [word.decode('utf-8') for word in _karma_find_words(args)]
+        words = [word for word in _karma_find_words(args)]
         words = [_apply_mapping(word) for word in words]
-        result = u"; ".join([u"%s: %s" % (i,_total(i)) for i in words])
+        result = "; ".join(["%s: %s" % (i,_total(i)) for i in words])
         if result != "":
-            print('karma totals: ' + result.encode('utf-8'))
+            print('karma totals: ' + result)
     elif method == 'karmasearch' or method == 'ks':
         args = args.strip()
         if len(args) > 0:

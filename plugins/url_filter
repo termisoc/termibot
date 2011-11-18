@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import sys, re, urllib.request, urllib.parse, urllib.error
+import sys, re, urllib.request, urllib.parse, urllib.error, json
 
 from html.parser import HTMLParser
 
@@ -18,32 +18,18 @@ urllib.request._urlopener=MyUrlOpener()
 
 
 class TitleParser(HTMLParser):
-    title = None
-    url = None
+    title = ""
     _in_title = False
-    _in_p_class = False
 
     def handle_starttag(self, tag, attrs):
         if tag == 'title':
             self._in_title = True
-        elif tag == 'p':
-            for attr in attrs:
-                if attr[0] == 'class' and attr[1] == 'success':
-                    self._in_p_class = True
-                    break
-        elif self._in_p_class and tag == 'a':
-            for attr in attrs:
-                if attr[0] == 'href':
-                    self.url = attr[1]
-                    break
     def handle_endtag(self, tag):
         if tag == 'title':
             self._in_title = False
-        elif tag == 'p':
-            self._in_p_class = False
     def handle_data(self, data):
         if self._in_title:
-            self.title = data
+            self.title += data
 
 
 def parse(line):
@@ -52,14 +38,18 @@ def parse(line):
     return uri_re.findall(line)
 
 def shorten(url):
+    req = urllib.request.Request('https://www.googleapis.com/urlshortener/v1/url',
+            json.dumps({'longUrl': url}).encode('utf-8'),
+            {'Content-Type': 'application/json'})
     try:
-        data = urllib.request.urlopen("http://ur1.ca/",data=urllib.parse.urlencode({'longurl':url})).read()
+        data = urllib.request.urlopen(req)
     except:
-        return ""
+        return ''
 
-    parser = TitleParser()
-    parser.feed(data.decode("utf-8"))
-    return parser.url.strip()
+    meta = json.loads(data.read().decode('utf-8'))
+    if 'id' in meta:
+        return meta['id']
+    return ''
 
 def gettitle(url):
     try:

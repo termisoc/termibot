@@ -5,6 +5,9 @@ import sys, re, urllib.request, urllib.parse, urllib.error, json
 
 from html.parser import HTMLParser
 
+from gzip import GzipFile
+from io import BytesIO
+
 import postgresql.driver.dbapi20 as postgresql
 conn = postgresql.connect(database=sys.argv[1], user='termibot', password='PASSWORD', host='127.0.0.1')
 cur = conn.cursor()
@@ -59,16 +62,32 @@ def gettitle(url):
 
     ctype = data.info()["Content-Type"]
     if ";" in ctype:
-        (ctype, charset) = data.info()["Content-Type"].split(";")
+        (ctype, charset) = data.info()["Content-Type"].split(";")[0:2]
         charset = charset.split("=")[1].lower()
     else:
         charset = 'utf-8'
 
     if ctype in ["text/html", "application/xhtml+xml"]:
         parser = TitleParser()
-        parser.feed(data.read().decode(charset))
+
+        if data.headers.get("content-encoding") == "gzip":
+            data = gzip.GzipFile(fileobj=BytesIO(data.read()), mode="r")
+
+        try:
+            text = data.read().decode(charset)
+        except:
+            return 'unknown'
+
+        sane_text = re.sub(r'(<!\[CDATA\[.*?\]\]>)', '', text, flags=re.DOTALL)
+        try:
+            parser.feed(sane_text)
+        except:
+            titles = list(re.findall('<title>(.*?)<', text))
+            if len(titles) > 0:
+                return titles[0]
+
         title = parser.title
-        if title != None:
+        if title != None and title != '':
             return re.sub(r"[\n\s]+"," ", title.strip())
         else:
             return "(%s)" % ctype

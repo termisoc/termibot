@@ -96,11 +96,17 @@ def gettitle(url):
 
 def lookup(url, nick):
     # if url in database return database[url].{short,timestamp}
-    cur.execute('SELECT * FROM urls WHERE LOWER(url) = LOWER(%s)', (url,))
+    cur.execute('SELECT * FROM urls WHERE LOWER(url) = LOWER(%s) OR LOWER(short_url) = LOWER(%s)', (url,url))
     res = cur.fetchone()
     if res:
-        timestamp = res[1].strftime("%b %d, %Y at %H:%M")
-        return "[ %s — %s ] (first posted by %s at %s)" % (res[2], gettitle(url), res[3][0]+"\x0f"+res[3][1:], timestamp)
+        if len(res[2]) < 1:
+            short = shorten(url)
+            cur.execute('UPDATE urls SET short_url = %s WHERE url = %s', (short, res[0]))
+            conn.commit()
+        else:
+            short = res[2]
+        timestamp = res[3].strftime("%b %d, %Y at %H:%M")
+        return "[ %s — %s ] (first posted by %s at %s)" % (short, gettitle(url), res[3][0]+"\x0f"+res[3][1:], timestamp)
     else:
         # else shorten, store with timestamp
         short = shorten(url)

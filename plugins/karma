@@ -58,12 +58,14 @@ def _karma_find_items(line):
 
     return items
 
-def _filter(line):
+def _filter(line, nick):
     items = _karma_find_items(line)
     result = []
     for item in items:
         karma, sign, reason = item[0:3]
         reason = reason.strip()
+        if karma == 'me':
+            karma = nick
         result.append(apply_karma(karma, sign, reason))
         result[-1]['direction']= 'up' if sign == '++' else 'down' if sign == '--' else 'no change'
     return result
@@ -112,7 +114,7 @@ if __name__ == '__main__':
         sys.exit()
 
     if method == 'karma_filter':
-        result = _filter(args)
+        result = _filter(args, nick)
         if result != "":
             print(', '.join(['%(item)s %(direction)s (now %(total)s)' % item for item in result]))
     elif method == 'karma':

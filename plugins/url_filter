@@ -4,6 +4,7 @@
 import sys, re, urllib.request, urllib.parse, urllib.error, json, datetime
 
 from html.parser import HTMLParser
+from html.entities import name2codepoint
 
 from gzip import GzipFile
 from io import BytesIO
@@ -33,6 +34,19 @@ class TitleParser(HTMLParser):
     def handle_data(self, data):
         if self._in_title:
             self.title += data
+
+    def handle_entityref(self, name):
+        if self._in_title:
+            c = chr(name2codepoint[name])
+            self.title += c
+
+    def handle_charref(self, name):
+        if self._in_title:
+            if name.startswith('x'):
+                c = chr(int(name[1:], 16))
+            else:
+                c = chr(int(name))
+            self.title += c
 
 
 def parse(line):

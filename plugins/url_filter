@@ -50,7 +50,7 @@ class TitleParser(HTMLParser):
 
 
 def parse(line):
-    uri_prefix = r'((http://|https://|ftp://)[\w\-\@;\/?:&=%\$_.+!*\x27(),~#]+[\w\-\@;\/?&=%\$_+!*\x27()~])'
+    uri_prefix = r'((http://|https://|ftp://)[\w\-\@;\/?:&=%\$_.+!*\x27(),~#"]+[\w\-\@;\/?&=%\$_+!*\x27()~"])'
     uri_re = re.compile(uri_prefix)
     return uri_re.findall(line)
 
@@ -109,6 +109,7 @@ def gettitle(url):
         return "(%s)" % ctype
 
 def lookup_twitter(url):
+    url = re.sub(r'/photo/1/large/?$','',url)
     parts = [i for i in url.split('/') if i != '']
     tweet = 'http://api.twitter.com/1/statuses/show/%s.json' % parts[-1]
     try:
@@ -136,7 +137,7 @@ def lookup(url, nick):
             conn.commit()
         else:
             short = res[2]
-        timestamp = res[3].strftime("%b %d, %Y at %H:%M")
+        timestamp = res[1].strftime("%b %d, %Y at %H:%M")
         return "[ %s — %s ] (first posted by %s at %s)" % (short, gettitle(url), res[3][0]+"\x0f"+res[3][1:], timestamp)
     else:
         # else shorten, store with timestamp

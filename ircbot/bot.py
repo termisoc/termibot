@@ -10,8 +10,8 @@ import pluginfactory
 
 class Bot(object, irc.IRCClient):
     def connectionMade(self):
-        self.nickname = self.factory.nickname
-        self.plugins = pluginfactory.PluginFactory(log)
+        self.nickname = self.factory.nick
+        self.plugins = pluginfactory.PluginFactory(self.factory.config, log)
         irc.IRCClient.connectionMade(self)
 
     def connectionLost(self, reason):
@@ -20,7 +20,10 @@ class Bot(object, irc.IRCClient):
     def signedOn(self):
         """Called when bot has succesfully signed on to server."""
         log.msg('Connected.')
-        self.join(self.factory.channel)
+        log.msg('Joining: [%s]' % ','.join(self.factory.channels))
+        for channel in self.factory.channels:
+            self.join(channel)
+            log.msg('Joined %s' % channel)
 
     def privmsg(self, user, channel, message):
         user = re.split(r'[!@]', user)

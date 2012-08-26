@@ -6,14 +6,21 @@ import sys
 from twisted.internet import reactor
 from twisted.python import log
 
+import simpleyaml as yaml
+
 import botfactory
 
-
 log.startLogging(sys.stderr)
-f = botfactory.BotFactory(sys.argv[1], sys.argv[2])
+
+if len(sys.argv) > 1:
+    config = yaml.load(open(sys.argv[1]))
+else:
+    log.msg('no config file specified')
+
+f = botfactory.BotFactory(config)
 
 # connect factory to this host and port
-reactor.connectTCP("irc.oftc.net", 6667, f)
+reactor.connectTCP(config['server'], config['port'], f)
 
 # run bot
 reactor.run()

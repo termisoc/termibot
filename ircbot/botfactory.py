@@ -11,9 +11,10 @@ class BotFactory(protocol.ClientFactory):
     A new protocol instance will be created each time we connect to the server.
     """
 
-    def __init__(self, nickname, channel):
-        self.nickname = nickname
-        self.channel = channel
+    def __init__(self, config):
+        self.config = config
+        for key, value in config.iteritems():
+            setattr(self, key, value)
 
     def buildProtocol(self, addr):
         p = bot.Bot()

@@ -72,7 +72,7 @@ class PluginFactory(object):
     def get_filters(self, *args):
         return ', '.join([u'/%s/' % f.pattern for f in self.filters.keys()])
 
-    def reload_plugin(self, *args):
+    def reload_plugin(self, user, channel, args):
         plugin = args[0]
         module = imp.load_source('plugins.%s' % plugin,
                 'ircbot/plugins/%s.py' % plugin)

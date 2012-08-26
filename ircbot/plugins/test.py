@@ -12,8 +12,7 @@ class Test(plugin.Plugin):
         if len(args) == 0:
             return u'héllø, wörld'
 
-        return self.get_subcommand('hello_world',
-                args[0], user, channel, args[1:])
+        return self.get_subcommand(args[0], user, channel, args[1:])
 
     def hello_world_english(self, user, channel, args):
         return 'hello, world'

@@ -1,10 +1,13 @@
 # -*- coding: utf-8 -*-
 
+import inspect
+
 
 class Plugin(object):
-    def get_subcommand(self, prefix, subcommand, user, channel, args):
-        if prefix + '_' + subcommand not in dir(self):
+    def get_subcommand(self, subcommand, user, channel, args):
+        parent = inspect.stack()[1][3]
+        if parent + '_' + subcommand not in dir(self):
             return u'Unknown subcommand %s' % subcommand
         else:
             return getattr(self,
-                    prefix + '_' + subcommand)(user, channel, args)
+                    parent + '_' + subcommand)(user, channel, args)

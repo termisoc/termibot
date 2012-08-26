@@ -2,6 +2,7 @@
 
 import sys
 import imp
+import re
 
 from twisted.internet import reactor
 
@@ -47,10 +48,20 @@ class PluginFactory(object):
                 return self.commands[command](words)
         else:
             # not a command, check if it matches any filters
-            pass
+            output = ''
+            for pattern, command in self.filters.iteritems():
+                if pattern.search(message):
+                    output += command(message)
+                    output += '\r\n'
+
+            if output is not '':
+                return output
 
     def register_command(self, name, fn):
         self.commands[name] = fn
+
+    def register_filter(self, pattern, fn):
+        self.filters[re.compile(pattern)] = fn
 
     def get_commands(self, args):
         return ', '.join(self.commands.keys())

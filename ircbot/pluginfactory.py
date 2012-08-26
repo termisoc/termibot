@@ -45,13 +45,13 @@ class PluginFactory(object):
             command = words.pop(0)[1:]
 
             if command in self.commands:
-                return self.commands[command](words)
+                return self.commands[command](user, channel, words)
         else:
             # not a command, check if it matches any filters
             output = u''
             for pattern, command in self.filters.iteritems():
                 if pattern.search(message):
-                    output += command(message)
+                    output += command(user, channel, message)
                     output += u'\r\n'
 
             if output is not u'':
@@ -63,16 +63,16 @@ class PluginFactory(object):
     def register_filter(self, pattern, fn):
         self.filters[re.compile(pattern)] = fn
 
-    def get_commands(self, args):
+    def get_commands(self, *args):
         return ', '.join(self.commands.keys())
 
-    def get_plugins(self, args):
+    def get_plugins(self, *args):
         return ', '.join(self.plugins.keys())
 
-    def get_filters(self, args):
+    def get_filters(self, *args):
         return ', '.join([u'/%s/' % f.pattern for f in self.filters.keys()])
 
-    def reload_plugin(self, args):
+    def reload_plugin(self, *args):
         plugin = args[0]
         module = imp.load_source('plugins.%s' % plugin,
                 'ircbot/plugins/%s.py' % plugin)

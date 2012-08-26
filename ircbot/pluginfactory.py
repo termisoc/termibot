@@ -70,7 +70,7 @@ class PluginFactory(object):
         return ', '.join(self.plugins.keys())
 
     def get_filters(self, args):
-        return ', '.join(self.filters.keys())
+        return ', '.join([u'/%s/' % f.pattern for f in self.filters.keys()])
 
     def reload_plugin(self, args):
         plugin = args[0]

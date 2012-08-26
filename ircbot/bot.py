@@ -31,10 +31,15 @@ class Bot(object, irc.IRCClient):
 
         reply_to = user[0] if channel == self.nickname else channel
         reply_prefix = user[0] + ': ' if reply_to == channel else ''
-        output = self.plugins.run(user, channel, message)
+        output = self.plugins.run(user, channel, message.decode('utf-8'))
 
-        if output is not None:
-            self.msg(reply_to, reply_prefix + output)
+        if output is None:
+            return
+
+        if isinstance(output, unicode):
+            output = output.encode('utf-8').strip()
+
+        self.msg(reply_to, reply_prefix + output)
 
     def msg(self, target, message):
         log.msg('to %s: "%s"' % (target, message))

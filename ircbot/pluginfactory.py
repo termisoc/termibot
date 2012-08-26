@@ -48,13 +48,13 @@ class PluginFactory(object):
                 return self.commands[command](words)
         else:
             # not a command, check if it matches any filters
-            output = ''
+            output = u''
             for pattern, command in self.filters.iteritems():
                 if pattern.search(message):
                     output += command(message)
-                    output += '\r\n'
+                    output += u'\r\n'
 
-            if output is not '':
+            if output is not u'':
                 return output
 
     def register_command(self, name, fn):

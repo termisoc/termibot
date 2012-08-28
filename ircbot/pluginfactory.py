@@ -64,10 +64,10 @@ class PluginFactory(object):
         self.filters[re.compile(pattern)] = fn
 
     def get_commands(self, *args):
-        return ', '.join(self.commands.keys())
+        return u', '.join(self.commands.keys())
 
     def get_plugins(self, *args):
-        return ', '.join(self.plugins.keys())
+        return u', '.join(self.plugins.keys())
 
     def get_filters(self, *args):
         return u', '.join([u'/%s/: %s' % (f.pattern, c.im_class.__name__)

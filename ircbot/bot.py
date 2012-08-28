@@ -40,10 +40,10 @@ class Bot(object, irc.IRCClient):
             output = [output]
 
         for line in output:
-            if isinstance(line, unicode):
-                line = line.encode('utf-8')
             self.msg(reply_to, reply_prefix + line)
 
     def msg(self, target, message):
+        if isinstance(message, unicode):
+            message = message.encode('utf-8')
         print >>sys.stderr, 'to %s: "%s"' % (target, message)
         irc.IRCClient.msg(self, target, message)

@@ -8,8 +8,9 @@ import plugin
 class Karma(plugin.Plugin):
     def __init__(self, factory, config):
         factory.register_command('karma', self.karma)
-        self.conn = psycopg2.connect("dbname=termibot\
-                user=termibot host=127.0.0.1")
+        self.conn = psycopg2.connect("dbname=%(dbname)s\
+                user=%(user)s host=%(host)s password=%(password)s"
+                % config['database'])
 
     def karma(self, user, channel, args):
         if len(args) == 0:

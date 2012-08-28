@@ -11,8 +11,7 @@ import plugins  # NOQA
 
 
 class PluginFactory(object):
-    def __init__(self, config, log):
-        self.log = log
+    def __init__(self, config):
         self.config = config
 
         self.modules = {}
@@ -22,7 +21,7 @@ class PluginFactory(object):
 
         for plugin in config['plugins']:
             try:
-                log.msg('trying to load %s' % plugin)
+                print >>sys.stderr, 'trying to load %s' % plugin
                 module = imp.load_source('plugins.%s' % plugin,
                         'ircbot/plugins/%s.py' % plugin)
                 classname = plugin[0].upper() + plugin[1:]

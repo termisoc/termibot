@@ -18,6 +18,13 @@ class Karma(plugin.Plugin):
 
         return self.get_subcommand(args[0], user, channel, args[1:])
 
+    def karma_ALL(self, user, channel, args):
+        cur = self.conn.cursor()
+        cur.execute('SELECT item, SUM(direction) FROM karma WHERE LOWER(item) \
+                = LOWER(%s) GROUP BY item', (args[0],))
+        item = cur.fetchone()
+        return u'karma for “%s” is %s' % item
+
     def karma_search(self, user, channel, args):
         output = []
         cur = self.conn.cursor()

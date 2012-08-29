@@ -47,13 +47,16 @@ class PluginFactory(object):
                 return self.commands[command](user, channel, words)
         else:
             # not a command, check if it matches any filters
-            output = u''
+            output = []
             for pattern, command in self.filters.iteritems():
                 if pattern.search(message):
-                    output += command(user, channel, message)
-                    output += u'\r\n'
+                    result = command(user, channel, message)
+                    if isinstance(result, list):
+                        output.extend(result)
+                    else:
+                        output.append(result)
 
-            if output is not u'':
+            if len(output) > 0:
                 return output
 
     def register_command(self, name, fn):

@@ -29,6 +29,21 @@ class Karma(plugin.Plugin):
                 user=%(user)s host=%(host)s password=%(password)s"
                 % config['database'])
 
+    def _get_value(self, item):
+        try:
+            cur = self.conn.cursor()
+            cur.execute('SELECT SUM(direction) FROM karma WHERE \
+                    LOWER(item) = LOWER(%s)', (item,))
+            result = cur.fetchone()[0]
+            if result is None:
+                result = 0
+        except Exception as e:
+            print >>sys.stderr, e
+            result = 0
+        finally:
+            cur.close()
+            return result
+
     def karma(self, user, channel, args):
         if len(args) == 0:
             return u'No command specified, try !karma help'
@@ -36,16 +51,11 @@ class Karma(plugin.Plugin):
         return self.get_subcommand(args[0], user, channel, args[1:])
 
     def karma_ALL(self, user, channel, args):
-        cur = self.conn.cursor()
         items = self.karma_word_re.findall(u' '.join(args))
         output = []
 
         for item in items:
-            cur.execute('SELECT SUM(direction) FROM karma WHERE \
-                    LOWER(item) = LOWER(%s)', (item,))
-            result = cur.fetchone()[0]
-            if result is None:
-                result = 0
+            result = self._get_value(item)
             output.append(u'karma for “%s” is %s' % (item, result))
 
         return u'; '.join(output)

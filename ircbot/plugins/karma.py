@@ -1,11 +1,28 @@
 # -*- coding: utf-8 -*-
 
+import re
+import sys
+
 import psycopg2
 
 import plugin
 
 
 class Karma(plugin.Plugin):
+    plusminus = ur'([+-]{2}|±)'
+    simple_karma = r'\w{2,}'
+    quoted_string = r'"(?:(?:\\.)|(?:[^"]))*"'
+    karma_word = '(' + simple_karma + '|' + quoted_string + ')' + \
+            r'(?=(?:\s|$))'
+    karma_item = '(' + simple_karma + '|' + quoted_string + ')' + \
+            plusminus + r'(?=(?:\s|$))'
+    karma_item_reason = karma_item + '( (?:for|because)' + '.+?' + \
+            '(?=' + karma_item + '|$)|\([^\)]+\))?'
+
+    karma_word_re = re.compile(karma_word)
+    karma_item_re = re.compile(karma_item)
+    karma_item_reason_re = re.compile(karma_item_reason)
+
     def __init__(self, factory, config):
         factory.register_command('karma', self.karma)
         self.conn = psycopg2.connect("dbname=%(dbname)s\
@@ -20,22 +37,31 @@ class Karma(plugin.Plugin):
 
     def karma_ALL(self, user, channel, args):
         cur = self.conn.cursor()
-        cur.execute('SELECT item, SUM(direction) FROM karma WHERE LOWER(item) \
-                = LOWER(%s) GROUP BY item', (args[0],))
-        item = cur.fetchone()
-        return u'karma for “%s” is %s' % item
+        items = self.karma_word_re.findall(u' '.join(args))
+        output = []
+
+        for item in items:
+            cur.execute('SELECT SUM(direction) FROM karma WHERE \
+                    LOWER(item) = LOWER(%s)', (item,))
+            result = cur.fetchone()[0]
+            if result is None:
+                result = 0
+            output.append(u'karma for “%s” is %s' % (item, result))
+
+        return u'; '.join(output)
 
     def karma_search(self, user, channel, args):
         output = []
         cur = self.conn.cursor()
         try:
-            cur.execute('SELECT item,SUM(direction) FROM karma WHERE \
-                    LOWER(item) ~ %s GROUP BY item ORDER BY item', (args[0],))
+            cur.execute('SELECT LOWER(item),SUM(direction) FROM karma \
+                    WHERE LOWER(item) ~ %s \
+                    GROUP BY LOWER(item) ORDER BY LOWER(item)', (args[0],))
             results = cur.fetchall()
-        except:
-            pass
-        finally:
+        except Exception as e:
+            print >>sys.stderr, e
             cur.close()
+            return
 
         if len(results) == 0:
             return u'no match'
@@ -51,7 +77,7 @@ class Karma(plugin.Plugin):
     def karma_help(self, user, channel, args):
         if len(args) == 0:
             return u'try !karma <item> to get the value of <item>, \
-                    or !karma item to match a pattern.'
+                    or !karma search <pattern> to match a pattern.'
 
         return self.get_subcommand(args[0], user, channel, args[1:])
 

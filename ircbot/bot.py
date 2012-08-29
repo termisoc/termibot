@@ -9,6 +9,8 @@ import pluginfactory
 
 
 class Bot(object, irc.IRCClient):
+    lineRate = 0.1
+
     def connectionMade(self):
         self.nickname = self.factory.nick
         self.plugins = pluginfactory.PluginFactory(self.factory.config)
@@ -38,6 +40,12 @@ class Bot(object, irc.IRCClient):
 
         if isinstance(output, str) or isinstance(output, unicode):
             output = [output]
+
+        if len(u' '.join(output)) > 256:
+            self.msg(reply_to, reply_prefix +
+                    u'Output too long, sending in PM.')
+            reply_to = user[0]
+            reply_prefix = ''
 
         for line in output:
             self.msg(reply_to, reply_prefix + line)

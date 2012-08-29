@@ -68,7 +68,7 @@ class Karma(plugin.Plugin):
 
         for item, value in results:
             if item is not None:
-                output.append(u'%s: %s' % (item, value))
+                output.append(u'“%s”: %s' % (item.decode('utf-8'), value))
 
         return u'; '.join(output)
 

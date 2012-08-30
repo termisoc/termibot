@@ -16,18 +16,57 @@ class Karma(plugin.Plugin):
             r'(?=(?:\s|$))'
     karma_item = '(' + simple_karma + '|' + quoted_string + ')' + \
             plusminus + r'(?=(?:\s|$))'
-    karma_item_reason = karma_item + '( (?:for|because)' + '.+?' + \
-            '(?=' + karma_item + '|$)|\([^\)]+\))?'
+    karma_item_reason = karma_item + \
+            r'(\s+(?:(?:for|because).+?(?=' + karma_item + r'|$)|\([^\)]+\)))?'
 
     karma_word_re = re.compile(karma_word)
-    karma_item_re = re.compile(karma_item)
     karma_item_reason_re = re.compile(karma_item_reason)
 
     def __init__(self, factory, config):
         factory.register_command('karma', self.karma)
+        factory.register_filter(self.plusminus, self.scan)
         self.conn = psycopg2.connect("dbname=%(dbname)s\
                 user=%(user)s host=%(host)s password=%(password)s"
                 % config['database'])
+
+    def scan(self, user, channel, message):
+        results = []
+        for match in self.karma_item_reason_re.findall(message):
+            item, sign, reason = match[0:3]
+            if sign == '++':
+                change = 1
+                direction = u'up'
+            elif sign == '--':
+                change = -1
+                direction = u'down'
+            else:
+                change = 0
+                direction = u'no change'
+
+            result = u"%s %s (now %%s)" % (item, direction)
+            if len(reason.strip()) > 0:
+                result += u", with reason"
+            else:
+                reason = None
+
+            self._set_value(item, change, reason)
+            total = self._get_value(item)
+            result = result % total
+
+            results.append(result)
+
+        return u"; ".join(results)
+
+    def _set_value(self, item, direction, reason):
+        try:
+            cur = self.conn.cursor()
+            cur.execute("INSERT INTO karma VALUES(%s, NOW(), %s, %s);",
+                    (item, direction, reason))
+            self.conn.commit()
+        except Exception as e:
+            print >>sys.stderr, e
+        finally:
+            cur.close()
 
     def _get_value(self, item):
         try:

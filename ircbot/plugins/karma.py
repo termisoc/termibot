@@ -91,12 +91,7 @@ class Karma(plugin.Plugin):
 
     def karma_ALL(self, user, channel, args):
         items = self.karma_word_re.findall(u' '.join(args))
-        output = []
-
-        for item in items:
-            result = self._get_value(item)
-            output.append(u'karma for “%s” is %s' % (item, result))
-
+        output = [u'karma for “%s” is %s' % (item, self._get_value(item)) for item in items]
         return u'; '.join(output)
 
     def karma_search(self, user, channel, args):

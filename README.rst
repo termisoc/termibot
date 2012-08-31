@@ -15,4 +15,4 @@ Take a look at ircbot/plugins/test.py for an example.
 Submitting patches
 ==================
 
-PEP8 compliant or GTFO.
+PEP8 compliant or GTFO. Feature branch off 'dev', please.

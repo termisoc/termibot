@@ -11,12 +11,14 @@ import psycopg2
 
 import plugin
 
+
 class MyUrlOpener(urllib.FancyURLopener):
         version = "Mozilla/4.0"
-urllib._urlopener=MyUrlOpener()
+urllib._urlopener = MyUrlOpener()
+
 
 class Url(plugin.Plugin):
-    pattern = r'((?:http://|https://|ftp://)[\w\-\@;\/?:&=%\$_.+!*\x27(),~#"]+[\w\-\@;\/?&=%\$_+!*\x27()~"])'
+    pattern = r'((?:http://|https://|ftp://)[\w\-\@;\/?:&=%\$_.+!*\x27(),~#"]+[\w\-\@;\/?&=%\$_+!*\x27()~"])'  # NOQA
     url_re = re.compile(pattern)
 
     def __init__(self, factory, config):
@@ -47,10 +49,12 @@ class Url(plugin.Plugin):
         data = urllib.urlopen(url)
         ctype = data.info()["Content-Type"].split(";")[0]
         if ctype in ["text/html", "application/xhtml+xml"]:
-            xml = html5lib.HTMLParser(tree=html5lib.treebuilders.getTreeBuilder("etree"), namespaceHTMLElements=False).parse(data.read())
+            xml = html5lib.HTMLParser(
+                    tree=html5lib.treebuilders.getTreeBuilder("etree"),
+                    namespaceHTMLElements=False).parse(data.read())
             title = xml.find(".//title")
-            if title != None:
-                return re.sub(r"[\n\s]+"," ", title.text.strip())
+            if title is not None:
+                return re.sub(r"[\n\s]+", " ", title.text.strip())
             else:
                 return u"(%s)" % ctype
         else:
@@ -59,7 +63,8 @@ class Url(plugin.Plugin):
     def _get_first(self, url, user):
         cur = self.conn.cursor()
         try:
-            cur.execute('SELECT * FROM urls WHERE LOWER(url) = LOWER(%s) OR LOWER(short_url) = LOWER(%s)', (url,url))
+            cur.execute('SELECT * FROM urls WHERE LOWER(url) = LOWER(%s) \
+                    OR LOWER(short_url) = LOWER(%s)', (url, url))
             res = cur.fetchone()
         except Exception as e:
             print >>sys.stderr, e
@@ -68,10 +73,11 @@ class Url(plugin.Plugin):
 
         if res:
             timestamp = res[1].strftime("%b %d, %Y at %H:%M")
-            return (res[3][0]+"\x0f"+res[3][1:], timestamp)
+            return (res[3][0] + "\x0f" + res[3][1:], timestamp)
         else:
             try:
-                cur.execute(u'INSERT INTO urls VALUES(%s, NOW(), %s, %s)', (url, None, user))
+                cur.execute(u'INSERT INTO urls VALUES(%s, NOW(), %s, %s)',
+                        (url, None, user))
                 self.conn.commit()
             except Exception as e:
                 print >>sys.stderr, e
@@ -81,7 +87,10 @@ class Url(plugin.Plugin):
             return None
 
     def _shorten(self, url):
-        req = urllib2.Request('https://www.googleapis.com/urlshortener/v1/url', json.dumps({'longUrl': url}).encode('utf-8'), {'Content-Type': 'application/json'})
+        req = urllib2.Request('https://www.googleapis.com/urlshortener/v1/url',
+                json.dumps({'longUrl': url}).encode('utf-8'),
+                {'Content-Type': 'application/json'})
+
         try:
             data = urllib2.urlopen(req)
         except:

@@ -53,7 +53,7 @@ class PluginFactory(object):
                     result = command(user, channel, message)
                     if isinstance(result, list):
                         output.extend(result)
-                    else:
+                    elif result is not None:
                         output.append(result)
 
             if len(output) > 0:

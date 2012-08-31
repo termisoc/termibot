@@ -41,7 +41,7 @@ class Bot(object, irc.IRCClient):
         if isinstance(output, str) or isinstance(output, unicode):
             output = [output]
 
-        if len(u' '.join(output)) > 256:
+        if len(u' '.join(output)) > 512:
             self.msg(reply_to, reply_prefix +
                     u'Output too long, sending in PM.')
             reply_to = user[0]

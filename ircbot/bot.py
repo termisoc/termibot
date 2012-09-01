@@ -23,6 +23,9 @@ class Bot(object, irc.IRCClient):
         """Called when bot has succesfully signed on to server."""
         print >>sys.stderr, 'Connected.'
         print >>sys.stderr, 'Joining: [%s]' % ','.join(self.factory.channels)
+        if 'nickserv' in self.factory.config:
+            self.msg('NickServ', 'identify %s' %
+                    self.factory.config['nickserv']['password'])
         for channel in self.factory.channels:
             self.join(channel)
             print >>sys.stderr, 'Joined %s' % channel

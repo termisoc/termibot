@@ -27,7 +27,7 @@ class Bot(object, irc.IRCClient):
             self.msg('NickServ', 'identify %s' %
                     self.factory.config['nickserv']['password'])
         for channel in self.factory.channels:
-            self.join(channel)
+            self.join(channel.encode('utf-8'))
             print >>sys.stderr, 'Joined %s' % channel
 
     def privmsg(self, user, channel, message):

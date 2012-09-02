@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+VERSION = (1, 1, 0)
+
 import sys
 
 from twisted.internet import reactor

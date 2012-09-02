@@ -75,6 +75,10 @@ class PluginFactory(object):
         return u', '.join([u'/%s/: %s' % (f.pattern, c.im_class.__name__)
                 for f, c in self.filters.iteritems()])
 
+    def get_version(self, *args):
+        global VERSION
+        return u'%s.%s.%s' % VERSION  # NOQA
+
     def reload_plugin(self, user, channel, args):
         plugin = args[0]
         module = imp.load_source('plugins.%s' % plugin,

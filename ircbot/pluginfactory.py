@@ -77,8 +77,7 @@ class PluginFactory(object):
                 for f, c in self.filters.iteritems()])
 
     def get_version(self, *args):
-        global VERSION
-        return u'%s.%s.%s' % VERSION  # NOQA
+        return u'%s.%s.%s' % self.config['version']
 
     def reload_plugin(self, user, channel, args):
         plugin = args[0]

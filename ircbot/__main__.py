@@ -19,6 +19,8 @@ if len(sys.argv) > 1:
 else:
     log.msg('no config file specified')
 
+config['version'] = VERSION
+
 f = botfactory.BotFactory(config)
 
 # connect factory to this host and port

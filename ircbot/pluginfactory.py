@@ -36,6 +36,7 @@ class PluginFactory(object):
         self.register_command('commands', self.get_commands)
         self.register_command('filters', self.get_filters)
         self.register_command('reload', self.reload_plugin)
+        self.register_command('version', self.get_version)
 
     def run(self, user, channel, message):
         if message.startswith('!'):

@@ -36,6 +36,7 @@ class PluginFactory(object):
         self.register_command('commands', self.get_commands)
         self.register_command('filters', self.get_filters)
         self.register_command('reload', self.reload_plugin)
+        self.register_command('version', self.get_version)
 
     def run(self, user, channel, message):
         if message.startswith('!'):
@@ -74,6 +75,9 @@ class PluginFactory(object):
     def get_filters(self, *args):
         return u', '.join([u'/%s/: %s' % (f.pattern, c.im_class.__name__)
                 for f, c in self.filters.iteritems()])
+
+    def get_version(self, *args):
+        return u'%s.%s.%s' % self.config['version']
 
     def reload_plugin(self, user, channel, args):
         plugin = args[0]

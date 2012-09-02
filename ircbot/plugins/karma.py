@@ -43,6 +43,11 @@ class Karma(plugin.Plugin):
                 change = 0
                 direction = u'no change'
 
+            if item.startswith(u'"'):
+                item = item[1:-1]
+            else:
+                item = re.sub('_', ' ', item)
+
             result = u"%s %s (now %%s)" % (item, direction)
             if len(reason.strip()) > 0:
                 result += u", with reason"

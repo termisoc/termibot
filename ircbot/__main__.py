@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+VERSION = (1, 1, 0)
+
 import sys
 
 from twisted.internet import reactor
@@ -16,6 +18,8 @@ if len(sys.argv) > 1:
     config = yaml.load(open(sys.argv[1]))
 else:
     log.msg('no config file specified')
+
+config['version'] = VERSION
 
 f = botfactory.BotFactory(config)
 

@@ -3,7 +3,6 @@
 import json
 import re
 import sys
-import urllib
 import urllib2
 
 import html5lib
@@ -12,14 +11,10 @@ import psycopg2
 import plugin
 
 
-class MyUrlOpener(urllib.FancyURLopener):
-        version = "Mozilla/4.0"
-urllib._urlopener = MyUrlOpener()
-
-
 class Url(plugin.Plugin):
     pattern = r'((?:http://|https://|ftp://)[\w\-\@;\/?:&=%\$_.+!*\x27(),~#"]+[\w\-\@;\/?&=%\$_+!*\x27()~"])'  # NOQA
     url_re = re.compile(pattern)
+    twit_re = r'https?://([^.]*\.)?twitter.com/.*status(es)?/[0-9]+'
 
     def __init__(self, factory, config):
         self.config = config
@@ -33,20 +28,52 @@ class Url(plugin.Plugin):
 
         output = []
         for url in urls:
-            short = self._shorten(url)
-            title = self._get_title(url)
-            first_posted = self._get_first(url, user[0])
-            if first_posted is not None:
-                output.append(u'[%s — %s] (first posted by %s on %s)' %
-                        (short, title, first_posted[0], first_posted[1]))
-            else:
-                output.append(u'[%s — %s]' % (short, title))
+            if self.config['plugin_settings']['url']['handle_twitter']:
+                if re.match(self.twit_re, url):
+                    result = self._handle_twitter(url)
+                    if result is not None:
+                        output.append(result)
+                    continue
 
-        if self.config['plugin_settings']['url']['print_to_channel']:
-            return output
+            if not self.config['plugin_settings']['url']['print_to_channel']:
+                continue
+
+            result = self._handle_url(url, user[0])
+            if result is not None:
+                output.append(result)
+
+        return output
+
+    def _handle_url(self, url, user):
+        short = self._shorten(url)
+        title = self._get_title(url)
+        first_posted = self._get_first(url, user)
+        if first_posted is not None:
+            return (u'[%s — %s] (first posted by %s on %s)' %
+                    (short, title, first_posted[0], first_posted[1]))
+        else:
+            return (u'[%s — %s]' % (short, title))
+
+    def _handle_twitter(self, url):
+        tweet = re.search(r'/([0-9]+)(/|$)', url).group(1)
+        try:
+            req = urllib2.urlopen(
+                    'http://api.twitter.com/1/statuses/show/%s.json' % tweet)
+        except:
+            return u'[ unknown ]'
+
+        data = json.loads(req.read())
+        if 'retweeted_status' in data and data['retweeted_status']:
+            data = data['retweeted_status']
+        data['text'] = " ".join(data['text'].split('\n'))
+        return '%s (%s): %s (%s)' % (data['user']['name'],
+                data['user']['screen_name'], data['text'], data['created_at'])
 
     def _get_title(self, url):
-        data = urllib.urlopen(url)
+        req = urllib2.Request(url)
+        req.add_header('User-Agent', 'Mozilla/5.0')
+        data = urllib2.urlopen(req)
+
         ctype = data.info()["Content-Type"].split(";")[0]
         if ctype in ["text/html", "application/xhtml+xml"]:
             xml = html5lib.HTMLParser(

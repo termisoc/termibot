@@ -55,7 +55,7 @@ class Url(plugin.Plugin):
             return (u'[%s — %s]' % (short, title))
 
     def _handle_twitter(self, url):
-        tweet = re.search(r'/([0-9]+)/', url).group(1)
+        tweet = re.search(r'/([0-9]+)(/|$)', url).group(1)
         try:
             req = urllib2.urlopen(
                     'http://api.twitter.com/1/statuses/show/%s.json' % tweet)

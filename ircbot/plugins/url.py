@@ -27,17 +27,24 @@ class Url(plugin.Plugin):
 
         output = []
         for url in urls:
-            short = self._shorten(url)
-            title = self._get_title(url)
-            first_posted = self._get_first(url, user[0])
-            if first_posted is not None:
-                output.append(u'[%s — %s] (first posted by %s on %s)' %
-                        (short, title, first_posted[0], first_posted[1]))
-            else:
-                output.append(u'[%s — %s]' % (short, title))
+            if not self.config['plugin_settings']['url']['print_to_channel']:
+                continue
 
-        if self.config['plugin_settings']['url']['print_to_channel']:
-            return output
+            result = self._handle_url(url, user[0])
+            if result is not None:
+                output.append(result)
+
+        return output
+
+    def _handle_url(self, url, user):
+        short = self._shorten(url)
+        title = self._get_title(url)
+        first_posted = self._get_first(url, user)
+        if first_posted is not None:
+            return (u'[%s — %s] (first posted by %s on %s)' %
+                    (short, title, first_posted[0], first_posted[1]))
+        else:
+            return (u'[%s — %s]' % (short, title))
 
     def _get_title(self, url):
         req = urllib2.Request(url)

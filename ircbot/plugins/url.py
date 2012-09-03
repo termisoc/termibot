@@ -33,6 +33,7 @@ class Url(plugin.Plugin):
                     result = self._handle_twitter(url)
                     if result is not None:
                         output.append(result)
+                    continue
 
             if not self.config['plugin_settings']['url']['print_to_channel']:
                 continue

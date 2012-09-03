@@ -14,6 +14,7 @@ import plugin
 class Url(plugin.Plugin):
     pattern = r'((?:http://|https://|ftp://)[\w\-\@;\/?:&=%\$_.+!*\x27(),~#"]+[\w\-\@;\/?&=%\$_+!*\x27()~"])'  # NOQA
     url_re = re.compile(pattern)
+    twit_re = r'https?://([^.]*\.)?twitter.com/.*status(es)?/[0-9]+'
 
     def __init__(self, factory, config):
         self.config = config
@@ -27,6 +28,12 @@ class Url(plugin.Plugin):
 
         output = []
         for url in urls:
+            if self.config['plugin_settings']['url']['handle_twitter']:
+                if re.match(self.twit_re, url):
+                    result = self._handle_twitter(url)
+                    if result is not None:
+                        output.append(result)
+
             if not self.config['plugin_settings']['url']['print_to_channel']:
                 continue
 
@@ -45,6 +52,21 @@ class Url(plugin.Plugin):
                     (short, title, first_posted[0], first_posted[1]))
         else:
             return (u'[%s — %s]' % (short, title))
+
+    def _handle_twitter(self, url):
+        tweet = re.search(r'/([0-9]+)/', url).group(1)
+        try:
+            req = urllib2.urlopen(
+                    'http://api.twitter.com/1/statuses/show/%s.json' % tweet)
+        except:
+            return u'[ unknown ]'
+
+        data = json.loads(req.read())
+        if 'retweeted_status' in data and data['retweeted_status']:
+            data = data['retweeted_status']
+        data['text'] = " ".join(data['text'].split('\n'))
+        return '%s (%s): %s (%s)' % (data['user']['name'],
+                data['user']['screen_name'], data['text'], data['created_at'])
 
     def _get_title(self, url):
         req = urllib2.Request(url)

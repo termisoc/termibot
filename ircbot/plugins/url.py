@@ -3,18 +3,12 @@
 import json
 import re
 import sys
-import urllib
 import urllib2
 
 import html5lib
 import psycopg2
 
 import plugin
-
-
-class MyUrlOpener(urllib.FancyURLopener):
-        version = "Mozilla/4.0"
-urllib._urlopener = MyUrlOpener()
 
 
 class Url(plugin.Plugin):
@@ -46,7 +40,10 @@ class Url(plugin.Plugin):
             return output
 
     def _get_title(self, url):
-        data = urllib.urlopen(url)
+        req = urllib2.Request(url)
+        req.add_header('User-Agent', 'Mozilla/5.0')
+        data = urllib2.urlopen(req)
+
         ctype = data.info()["Content-Type"].split(";")[0]
         if ctype in ["text/html", "application/xhtml+xml"]:
             xml = html5lib.HTMLParser(

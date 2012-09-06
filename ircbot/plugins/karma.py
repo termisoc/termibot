@@ -43,11 +43,6 @@ class Karma(plugin.Plugin):
                 change = 0
                 direction = u'no change'
 
-            if item.startswith(u'"'):
-                item = item[1:-1]
-            else:
-                item = re.sub('_', ' ', item)
-
             result = u"%s %s (now %%s)" % (item, direction)
             if len(reason.strip()) > 0:
                 result += u", with reason"
@@ -63,6 +58,7 @@ class Karma(plugin.Plugin):
         return u"; ".join(results)
 
     def _set_value(self, item, direction, reason):
+        item = self._cleanup_item(item)
         try:
             cur = self.conn.cursor()
             cur.execute("INSERT INTO karma VALUES(%s, NOW(), %s, %s);",
@@ -74,6 +70,7 @@ class Karma(plugin.Plugin):
             cur.close()
 
     def _get_value(self, item):
+        item = self._cleanup_item(item)
         try:
             cur = self.conn.cursor()
             cur.execute('SELECT SUM(direction) FROM karma WHERE \
@@ -87,6 +84,13 @@ class Karma(plugin.Plugin):
         finally:
             cur.close()
             return result
+
+    def _cleanup_item(self, item):
+        if item.startswith(u'"'):
+            item = item[1:-1]
+        else:
+            item = re.sub('_', ' ', item)
+        return item
 
     def karma(self, user, channel, args):
         if len(args) == 0:

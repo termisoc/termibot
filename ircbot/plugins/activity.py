@@ -45,7 +45,7 @@ class Activity(plugin.Plugin):
                     % (req_user, last_seen, last_channel))
 
             if last_message is not None:
-                output += u'saying “%s”.' % last_message
+                output += u' saying “%s”.' % last_message
             else:
                 output += u'.'
 

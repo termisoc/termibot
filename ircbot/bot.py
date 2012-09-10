@@ -34,9 +34,14 @@ class Bot(object, irc.IRCClient):
         user = re.split(r'[!@]', user)
         print >>sys.stderr, 'from %s in %s: "%s"' % (user[0], channel, message)
 
+        try:
+            message = message.decode('utf-8')
+        except UnicodeDecodeError:
+            message = message.decode('iso-8859-15')
+
         reply_to = user[0] if channel == self.nickname else channel
         reply_prefix = user[0] + ': ' if reply_to == channel else ''
-        output = self.plugins.run(user, channel, message.decode('utf-8'))
+        output = self.plugins.run(user, channel, message)
 
         if output is None:
             return

@@ -31,13 +31,23 @@ class Activity(plugin.Plugin):
         if req_user not in self.activity:
             return u'%s has never been seen.' % req_user
         else:
-            last_message = self.activity[req_user]['message']
             last_channel = self.activity[req_user]['channel']
+
+            if channel == last_channel:
+                last_message = self.activity[req_user]['message']
+            else:
+                last_message = None
+
             last_seen = self._timedelta_format(datetime.now() -
                     self.activity[req_user]['timestamp'])
 
-            return (u'%s was last seen %s ago in %s, saying “%s”.'
-                    % (req_user, last_seen, last_channel, last_message))
+            output = (u'%s was last seen %s ago in %s'
+                    % (req_user, last_seen, last_channel))
+
+            if last_message is not None:
+                output += u'saying “%s”.' % last_message
+            else:
+                output += u'.'
 
     def add_tell(self, user, channel, message):
         target = message[0]

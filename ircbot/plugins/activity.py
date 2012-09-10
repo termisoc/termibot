@@ -49,6 +49,8 @@ class Activity(plugin.Plugin):
             else:
                 output += u'.'
 
+        return output
+
     def add_tell(self, user, channel, message):
         target = message[0]
         if target not in self.messages:

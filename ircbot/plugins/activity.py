@@ -9,8 +9,10 @@ class Activity(plugin.Plugin):
     def __init__(self, factory, config):
         self.config = config
         self.activity = {}
+        self.messages = {}
         factory.register_filter(r'.*', self.update_activity)
         factory.register_command(u'seen', self.get_last_seen)
+        factory.register_command(u'tell', self.add_tell)
 
     def update_activity(self, user, channel, message):
         user = user[0]
@@ -22,6 +24,7 @@ class Activity(plugin.Plugin):
                 'message': message,
                 'timestamp': datetime.now(),
                 }
+        return self.run_tell(user)
 
     def get_last_seen(self, user, channel, message):
         req_user = message[0]
@@ -35,6 +38,32 @@ class Activity(plugin.Plugin):
 
             return (u'%s was last seen %s ago in %s, saying “%s”.'
                     % (req_user, last_seen, last_channel, last_message))
+
+    def add_tell(self, user, channel, message):
+        target = message[0]
+        if target not in self.messages:
+            self.messages[target] = {}
+        if user[0] not in self.messages[target]:
+            self.messages[target][user[0]] = []
+
+        self.messages[target][user[0]].append(message[1:])
+        return u'Okay, will tell %s on next speaking.' % target
+
+    def run_tell(self, user):
+        if not user in self.messages:
+            return
+        if len(self.messages[user].keys()) == 0:
+            return
+
+        output = []
+        for sender, messages in self.messages[user].iteritems():
+            if len(messages) == 0:
+                continue
+            for message in messages:
+                output.append(u'%s told me to tell you: %s' %
+                        (sender, u' '.join(message)))
+        del self.messages[user]
+        return output
 
     def _timedelta_format(self, delta):
         s = delta.seconds

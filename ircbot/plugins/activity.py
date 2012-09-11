@@ -1,6 +1,12 @@
 # -*- coding: utf-8 -*-
 
+import sys
+import time
 from datetime import datetime
+from threading import Thread
+
+import psycopg2
+from dateutil.tz import tzlocal
 
 import plugin
 
@@ -10,20 +16,34 @@ class Activity(plugin.Plugin):
         self.config = config
         self.activity = {}
         self.messages = {}
-        factory.register_filter(r'.*', self.update_activity)
+        factory.register_filter(r'.*', self.update_activity_ui)
         factory.register_command(u'seen', self.get_last_seen)
-        factory.register_command(u'tell', self.add_tell)
+        factory.register_command(u'tell', self.add_tell_ui)
 
-    def update_activity(self, user, channel, message):
-        user = user[0]
+        self.conn = psycopg2.connect("dbname=%(dbname)s\
+                user=%(user)s host=%(host)s password=%(password)s"
+                % config['database'])
+
+        self.load_from_db()
+
+        self.run_thread = True
+        self.updater = Thread(target=self.update_loop)
+        self.updater.daemon = True
+        self.updater.start()
+
+    def update_activity(self, user, channel, message,
+            timestamp=datetime.now(tzlocal())):
         if user in self.activity:
             del self.activity[user]
 
         self.activity[user] = {
                 'channel': channel,
                 'message': message,
-                'timestamp': datetime.now(),
+                'timestamp': timestamp,
                 }
+
+    def update_activity_ui(self, user, channel, message):
+        self.update_activity(user[0], channel, message)
         return self.run_tell(user)
 
     def get_last_seen(self, user, channel, message):
@@ -38,7 +58,7 @@ class Activity(plugin.Plugin):
             else:
                 last_message = None
 
-            last_seen = self._timedelta_format(datetime.now() -
+            last_seen = self._timedelta_format(datetime.now(tzlocal()) -
                     self.activity[req_user]['timestamp'])
 
             output = (u'%s was last seen %s ago in %s'
@@ -51,15 +71,17 @@ class Activity(plugin.Plugin):
 
         return output
 
-    def add_tell(self, user, channel, message):
-        target = message[0]
+    def add_tell(self, target, sender, message):
         if target not in self.messages:
             self.messages[target] = {}
-        if user[0] not in self.messages[target]:
-            self.messages[target][user[0]] = []
+        if sender not in self.messages[target]:
+            self.messages[target][sender] = []
 
-        self.messages[target][user[0]].append(message[1:])
-        return u'Okay, will tell %s on next speaking.' % target
+        self.messages[target][sender].append(message)
+
+    def add_tell_ui(self, user, channel, message):
+        self.add_tell(message[0], user[0], u' '.join(message[1:]))
+        return u'Okay, will tell %s on next speaking.' % message[0]
 
     def run_tell(self, user):
         if not user in self.messages:
@@ -73,7 +95,7 @@ class Activity(plugin.Plugin):
                 continue
             for message in messages:
                 output.append(u'%s told me to tell you: %s' %
-                        (sender, u' '.join(message)))
+                        (sender, message))
         del self.messages[user]
         return output
 
@@ -83,3 +105,60 @@ class Activity(plugin.Plugin):
         hours, remainder = divmod(remainder, 3600)
         minutes, seconds = divmod(remainder, 60)
         return u'%s days %.2d:%.2d:%.2d' % (days, hours, minutes, seconds)
+
+    def update_loop(self):
+        while self.run_thread:
+            self.update_db()
+            time.sleep(30)
+
+    def update_db(self):
+        try:
+            cur = self.conn.cursor()
+            cur.execute("DELETE FROM last_seen;")
+            for user in self.activity.iterkeys():
+                value = self.activity[user]
+                cur.execute("INSERT INTO last_seen VALUES(%s, %s, %s, %s);",
+                    (user, value['channel'], value['message'],
+                        value['timestamp']))
+            self.conn.commit()
+        except Exception as e:
+            print >>sys.stderr, e
+        finally:
+            cur.close()
+
+        try:
+            cur = self.conn.cursor()
+            cur.execute("DELETE FROM user_tells;")
+            for target in self.messages.iterkeys():
+                for sender, messages in self.messages[user].iteritems():
+                    for message in messages:
+                        cur.execute(
+                                "INSERT INTO user_tells VALUES(%s, %s, %s);",
+                                (target, sender, message))
+            self.conn.commit()
+        except Exception as e:
+            print >>sys.stderr, e
+        finally:
+            cur.close()
+        print "updated db"
+
+    def load_from_db(self):
+        try:
+            cur = self.conn.cursor()
+            cur.execute("SELECT * from last_seen;")
+            for user, channel, message, timestamp in cur.fetchall():
+                self.update_activity(user, channel, message, timestamp)
+
+            cur.execute("SELECT * from user_tells;")
+            for target, sender, message in cur.fetchall():
+                self.add_tell(target, sender, message)
+        except Exception as e:
+            print >>sys.stderr, e
+        finally:
+            cur.close()
+
+    def on_reload(self):
+        self.run_thread = False
+
+        # one last database update when quitting.
+        self.update_db()

@@ -121,7 +121,13 @@ class Activity(plugin.Plugin):
                     (user, value['channel'], value['message'],
                         value['timestamp']))
             self.conn.commit()
+        except Exception as e:
+            print >>sys.stderr, e
+        finally:
+            cur.close()
 
+        try:
+            cur = self.conn.cursor()
             cur.execute("DELETE FROM user_tells;")
             for target in self.messages.iterkeys():
                 for sender, messages in self.messages[user].iteritems():
@@ -130,11 +136,11 @@ class Activity(plugin.Plugin):
                                 "INSERT INTO user_tells VALUES(%s, %s, %s);",
                                 (target, sender, message))
             self.conn.commit()
-            print "updated db"
         except Exception as e:
             print >>sys.stderr, e
         finally:
             cur.close()
+        print "updated db"
 
     def load_from_db(self):
         try:

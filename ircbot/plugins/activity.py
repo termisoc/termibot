@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import re
 import sys
 import time
 from datetime import datetime
@@ -109,7 +110,7 @@ class Activity(plugin.Plugin):
         return u'%s days %.2d:%.2d:%.2d' % (days, hours, minutes, seconds)
 
     def _nick_cleanup(self, nick):
-        return nick.lower()
+        return re.match(r'.*(?<![^a-z0-9])', nick.lower()).group(0)
 
     def update_loop(self):
         while self.run_thread:

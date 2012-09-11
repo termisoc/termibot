@@ -1,4 +1,5 @@
 Twisted==12.1.0
 html5lib==0.95
 psycopg2==2.4.5
+python-dateutil==2.1
 simpleyaml==1.0

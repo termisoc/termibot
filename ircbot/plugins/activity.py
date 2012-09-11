@@ -6,6 +6,7 @@ from datetime import datetime
 from threading import Thread
 
 import psycopg2
+from dateutil.tz import tzlocal
 
 import plugin
 
@@ -38,7 +39,7 @@ class Activity(plugin.Plugin):
         self.activity[user] = {
                 'channel': channel,
                 'message': message,
-                'timestamp': datetime.now(),
+                'timestamp': datetime.now(tzlocal()),
                 }
         return self.run_tell(user)
 
@@ -54,7 +55,7 @@ class Activity(plugin.Plugin):
             else:
                 last_message = None
 
-            last_seen = self._timedelta_format(datetime.now() -
+            last_seen = self._timedelta_format(datetime.now(tzlocal()) -
                     self.activity[req_user]['timestamp'])
 
             output = (u'%s was last seen %s ago in %s'

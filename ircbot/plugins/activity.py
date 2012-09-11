@@ -18,7 +18,7 @@ class Activity(plugin.Plugin):
         self.messages = {}
         factory.register_filter(r'.*', self.update_activity)
         factory.register_command(u'seen', self.get_last_seen)
-        factory.register_command(u'tell', self.add_tell)
+        factory.register_command(u'tell', self.add_tell_ui)
 
         self.conn = psycopg2.connect("dbname=%(dbname)s\
                 user=%(user)s host=%(host)s password=%(password)s"
@@ -68,15 +68,17 @@ class Activity(plugin.Plugin):
 
         return output
 
-    def add_tell(self, user, channel, message):
-        target = message[0]
+    def add_tell(self, target, sender, message):
         if target not in self.messages:
             self.messages[target] = {}
-        if user[0] not in self.messages[target]:
-            self.messages[target][user[0]] = []
+        if sender not in self.messages[target]:
+            self.messages[target][sender] = []
 
-        self.messages[target][user[0]].append(u' '.join(message[1:]))
-        return u'Okay, will tell %s on next speaking.' % target
+        self.messages[target][sender].append(message)
+
+    def add_tell_ui(self, user, channel, message):
+        self.add_tell(message[0], user[0], u' '.join(message[1:]))
+        return u'Okay, will tell %s on next speaking.' % message[0]
 
     def run_tell(self, user):
         if not user in self.messages:
@@ -142,16 +144,10 @@ class Activity(plugin.Plugin):
                         'message': message,
                         'timestamp': timestamp,
                         }
-            self.conn.commit()
 
             cur.execute("SELECT * from user_tells;")
             for target, sender, message in cur.fetchall():
-                if not target in self.messages:
-                    self.messages[target] = {}
-                if not sender in self.messages[target]:
-                    self.messages[target][sender] = []
-                self.messages[target][sender].append(message)
-            self.conn.commit()
+                self.add_tell(target, sender, message)
         except Exception as e:
             print >>sys.stderr, e
         finally:

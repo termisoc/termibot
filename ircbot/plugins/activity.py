@@ -70,8 +70,7 @@ class Activity(plugin.Plugin):
                 output += u' saying “%s”.' % last_message
             else:
                 output += u'.'
-
-        return output
+            return output
 
     def add_tell(self, target, sender, message):
         target = self._nick_cleanup(target)

@@ -23,6 +23,8 @@ class Activity(plugin.Plugin):
                 user=%(user)s host=%(host)s password=%(password)s"
                 % config['database'])
 
+        self.load_from_db()
+
         self.run_thread = True
         self.updater = Thread(target=self.update_loop)
         self.updater.daemon = True
@@ -123,6 +125,32 @@ class Activity(plugin.Plugin):
                                 (target, sender, message))
             self.conn.commit()
             print "updated db"
+        except Exception as e:
+            print >>sys.stderr, e
+        finally:
+            cur.close()
+
+    def load_from_db(self):
+        try:
+            cur = self.conn.cursor()
+            cur.execute("SELECT * from last_seen;")
+            res = cur.fetchall()
+            for user, channel, message, timestamp in res:
+                self.activity[user] = {
+                        'channel': channel,
+                        'message': message,
+                        'timestamp': timestamp,
+                        }
+            self.conn.commit()
+
+            cur.execute("SELECT * from user_tells;")
+            for target, sender, message in cur.fetchall():
+                if not target in self.messages:
+                    self.messages[target] = {}
+                if not sender in self.messages[target]:
+                    self.messages[target][sender] = []
+                self.messages[target][sender].append(message)
+            self.conn.commit()
         except Exception as e:
             print >>sys.stderr, e
         finally:

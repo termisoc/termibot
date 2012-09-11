@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import re
 import sys
 import time
 from datetime import datetime
@@ -43,11 +44,12 @@ class Activity(plugin.Plugin):
                 }
 
     def update_activity_ui(self, user, channel, message):
-        self.update_activity(user[0], channel, message)
-        return self.run_tell(user)
+        target = self._nick_cleanup(user[0])
+        self.update_activity(target, channel, message)
+        return self.run_tell(target)
 
     def get_last_seen(self, user, channel, message):
-        req_user = message[0]
+        req_user = self._nick_cleanup(message[0])
         if req_user not in self.activity:
             return u'%s has never been seen.' % req_user
         else:
@@ -72,6 +74,7 @@ class Activity(plugin.Plugin):
         return output
 
     def add_tell(self, target, sender, message):
+        target = self._nick_cleanup(target)
         if target not in self.messages:
             self.messages[target] = {}
         if sender not in self.messages[target]:
@@ -105,6 +108,9 @@ class Activity(plugin.Plugin):
         hours, remainder = divmod(remainder, 3600)
         minutes, seconds = divmod(remainder, 60)
         return u'%s days %.2d:%.2d:%.2d' % (days, hours, minutes, seconds)
+
+    def _nick_cleanup(self, nick):
+        return re.match(r'.*(?<![^a-z0-9])', nick.lower()).group(0)
 
     def update_loop(self):
         while self.run_thread:

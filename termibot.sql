@@ -9,3 +9,8 @@ CREATE TABLE karma_maps (from_name character varying(255) NOT NULL, to_name char
 
 DROP TABLE IF EXISTS URLS CASCADE;
 CREATE TABLE urls (url text NOT NULL, posted timestamp with time zone NOT NULL, short_url text, nick text NOT NULL);
+
+DROP TABLE IF EXISTS last_seen;
+CREATE TABLE last_seen (target character varying(255) NOT NULL, channel character varying(255) NOT NULL, message text NOT NULL, time timestamp with time zone NOT NULL);
+DROP TABLE IF EXISTS user_tells;
+CREATE TABLE user_tells (target character varying(255) NOT NULL, sender character varying(255) NOT NULL, message text NOT NULL);

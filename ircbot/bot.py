@@ -39,6 +39,11 @@ class Bot(object, irc.IRCClient):
         except UnicodeDecodeError:
             message = message.decode('iso-8859-15')
 
+        try:
+            channel = channel.decode('utf-8')
+        except UnicodeDecodeError:
+            channel = channel.decode('iso-8859-15')
+
         reply_to = user[0] if channel == self.nickname else channel
         reply_prefix = user[0] + ': ' if reply_to == channel else ''
         output = self.plugins.run(user, channel, message)
@@ -61,5 +66,7 @@ class Bot(object, irc.IRCClient):
     def msg(self, target, message):
         if isinstance(message, unicode):
             message = message.encode('utf-8')
+        if isinstance(target, unicode):
+            target = target.encode('utf-8')
         print >>sys.stderr, 'to %s: "%s"' % (target, message)
         irc.IRCClient.msg(self, target, message)

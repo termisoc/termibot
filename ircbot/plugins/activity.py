@@ -1,6 +1,11 @@
 # -*- coding: utf-8 -*-
 
+import sys
+import time
 from datetime import datetime
+from threading import Thread
+
+import psycopg2
 
 import plugin
 
@@ -13,6 +18,14 @@ class Activity(plugin.Plugin):
         factory.register_filter(r'.*', self.update_activity)
         factory.register_command(u'seen', self.get_last_seen)
         factory.register_command(u'tell', self.add_tell)
+
+        self.conn = psycopg2.connect("dbname=%(dbname)s\
+                user=%(user)s host=%(host)s password=%(password)s"
+                % config['database'])
+
+        self.updater = Thread(target=self.update_loop)
+        self.updater.daemon = True
+        self.updater.start()
 
     def update_activity(self, user, channel, message):
         user = user[0]
@@ -58,7 +71,7 @@ class Activity(plugin.Plugin):
         if user[0] not in self.messages[target]:
             self.messages[target][user[0]] = []
 
-        self.messages[target][user[0]].append(message[1:])
+        self.messages[target][user[0]].append(u' '.join(message[1:]))
         return u'Okay, will tell %s on next speaking.' % target
 
     def run_tell(self, user):
@@ -73,7 +86,7 @@ class Activity(plugin.Plugin):
                 continue
             for message in messages:
                 output.append(u'%s told me to tell you: %s' %
-                        (sender, u' '.join(message)))
+                        (sender, message))
         del self.messages[user]
         return output
 
@@ -83,3 +96,33 @@ class Activity(plugin.Plugin):
         hours, remainder = divmod(remainder, 3600)
         minutes, seconds = divmod(remainder, 60)
         return u'%s days %.2d:%.2d:%.2d' % (days, hours, minutes, seconds)
+
+    def update_loop(self):
+        while True:
+            self.update_db()
+            time.sleep(30)
+
+    def update_db(self):
+        try:
+            cur = self.conn.cursor()
+            cur.execute("DELETE FROM last_seen;")
+            for user in self.activity.iterkeys():
+                value = self.activity[user]
+                cur.execute("INSERT INTO last_seen VALUES(%s, %s, %s, %s);",
+                    (user, value['channel'], value['message'],
+                        value['timestamp']))
+            self.conn.commit()
+
+            cur.execute("DELETE FROM user_tells;")
+            for target in self.messages.iterkeys():
+                for sender, messages in self.messages[user].iteritems():
+                    for message in messages:
+                        cur.execute(
+                                "INSERT INTO user_tells VALUES(%s, %s, %s);",
+                                (target, sender, message))
+            self.conn.commit()
+            print "updated db"
+        except Exception as e:
+            print >>sys.stderr, e
+        finally:
+            cur.close()

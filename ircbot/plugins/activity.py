@@ -16,7 +16,7 @@ class Activity(plugin.Plugin):
         self.config = config
         self.activity = {}
         self.messages = {}
-        factory.register_filter(r'.*', self.update_activity)
+        factory.register_filter(r'.*', self.update_activity_ui)
         factory.register_command(u'seen', self.get_last_seen)
         factory.register_command(u'tell', self.add_tell_ui)
 
@@ -31,16 +31,19 @@ class Activity(plugin.Plugin):
         self.updater.daemon = True
         self.updater.start()
 
-    def update_activity(self, user, channel, message):
-        user = user[0]
+    def update_activity(self, user, channel, message,
+            timestamp=datetime.now(tzlocal())):
         if user in self.activity:
             del self.activity[user]
 
         self.activity[user] = {
                 'channel': channel,
                 'message': message,
-                'timestamp': datetime.now(tzlocal()),
+                'timestamp': timestamp,
                 }
+
+    def update_activity_ui(self, user, channel, message):
+        self.update_activity(user[0], channel, message)
         return self.run_tell(user)
 
     def get_last_seen(self, user, channel, message):
@@ -137,13 +140,8 @@ class Activity(plugin.Plugin):
         try:
             cur = self.conn.cursor()
             cur.execute("SELECT * from last_seen;")
-            res = cur.fetchall()
-            for user, channel, message, timestamp in res:
-                self.activity[user] = {
-                        'channel': channel,
-                        'message': message,
-                        'timestamp': timestamp,
-                        }
+            for user, channel, message, timestamp in cur.fetchall():
+                self.update_activity(user, channel, message, timestamp)
 
             cur.execute("SELECT * from user_tells;")
             for target, sender, message in cur.fetchall():

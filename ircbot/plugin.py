@@ -15,5 +15,5 @@ class Plugin(object):
                 args.insert(0, subcommand)
         return getattr(self, command)(user, channel, args)
 
-    def quit(self):
+    def on_reload(self):
         pass

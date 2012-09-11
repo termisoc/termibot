@@ -128,5 +128,8 @@ class Activity(plugin.Plugin):
         finally:
             cur.close()
 
-    def quit(self):
+    def on_reload(self):
         self.run_thread = False
+
+        # one last database update when quitting.
+        self.update_db()

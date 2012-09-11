@@ -47,7 +47,7 @@ class Url(plugin.Plugin):
     def _handle_url(self, url, user):
         short = self._shorten(url)
         title = self._get_title(url)
-        first_posted = self._get_first(url, user)
+        first_posted = self._get_first(url, user, short)
         if first_posted is not None:
             return (u'[%s — %s] (first posted by %s on %s)' %
                     (short, title, first_posted[0], first_posted[1]))
@@ -87,7 +87,7 @@ class Url(plugin.Plugin):
         else:
             return u"(%s)" % ctype
 
-    def _get_first(self, url, user):
+    def _get_first(self, url, user, short_url):
         cur = self.conn.cursor()
         try:
             cur.execute('SELECT * FROM urls WHERE LOWER(url) = LOWER(%s) \
@@ -104,7 +104,7 @@ class Url(plugin.Plugin):
         else:
             try:
                 cur.execute(u'INSERT INTO urls VALUES(%s, NOW(), %s, %s)',
-                        (url, None, user))
+                        (url, short_url, user))
                 self.conn.commit()
             except Exception as e:
                 print >>sys.stderr, e

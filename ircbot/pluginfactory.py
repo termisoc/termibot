@@ -85,5 +85,7 @@ class PluginFactory(object):
                 'ircbot/plugins/%s.py' % plugin)
         classname = plugin[0].upper() + plugin[1:]
 
+        self.plugins[plugin].quit()
+
         self.modules[plugin] = module
         self.plugins[plugin] = getattr(module, classname)(self, self.config)

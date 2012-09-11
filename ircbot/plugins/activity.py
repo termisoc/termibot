@@ -23,6 +23,7 @@ class Activity(plugin.Plugin):
                 user=%(user)s host=%(host)s password=%(password)s"
                 % config['database'])
 
+        self.run_thread = True
         self.updater = Thread(target=self.update_loop)
         self.updater.daemon = True
         self.updater.start()
@@ -98,7 +99,7 @@ class Activity(plugin.Plugin):
         return u'%s days %.2d:%.2d:%.2d' % (days, hours, minutes, seconds)
 
     def update_loop(self):
-        while True:
+        while self.run_thread:
             self.update_db()
             time.sleep(30)
 
@@ -126,3 +127,6 @@ class Activity(plugin.Plugin):
             print >>sys.stderr, e
         finally:
             cur.close()
+
+    def quit(self):
+        self.run_thread = False

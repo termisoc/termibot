@@ -14,3 +14,6 @@ class Plugin(object):
             else:
                 args.insert(0, subcommand)
         return getattr(self, command)(user, channel, args)
+
+    def quit(self):
+        pass

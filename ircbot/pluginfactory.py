@@ -41,24 +41,35 @@ class PluginFactory(object):
     def run(self, user, channel, message):
         if message.startswith('!'):
             # appears to be a command
-            words = message.split()
-            command = words.pop(0)[1:]
-
-            if command in self.commands:
-                return self.commands[command](user, channel, words)
+            return self.run_command(user, channel, message)
         else:
             # not a command, check if it matches any filters
-            output = []
-            for pattern, command in self.filters.iteritems():
-                if pattern.search(message):
-                    result = command(user, channel, message)
-                    if isinstance(result, list):
-                        output.extend(result)
-                    elif result is not None:
-                        output.append(result)
+            return self.run_filters(user, channel, message)
 
-            if len(output) > 0:
-                return output
+    def run_command(self, user, channel, message):
+        words = message.split()
+        command = words.pop(0)[1:]
+        if command in self.commands:
+            result = self.commands[command](user, channel, words)
+            if isinstance(result, list):
+                return [i.strip() for i in result if len(i.strip()) > 0]
+            elif result is not None:
+                return result.strip()
+
+    def run_filters(self, user, channel, message):
+        output = []
+        for pattern, command in self.filters.iteritems():
+            if pattern.search(message):
+                result = command(user, channel, message)
+
+                if isinstance(result, list):
+                    output.extend([i.strip() for i in result
+                        if len(i.strip()) > 0])
+                elif result is not None and len(result.strip()) > 0:
+                    output.append(result.strip())
+
+        if len(output) > 0:
+            return output
 
     def register_command(self, name, fn):
         self.commands[name] = fn

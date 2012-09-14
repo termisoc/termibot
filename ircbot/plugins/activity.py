@@ -32,8 +32,9 @@ class Activity(plugin.Plugin):
         self.updater.daemon = True
         self.updater.start()
 
-    def update_activity(self, user, channel, message,
-            timestamp=datetime.now(tzlocal())):
+    def update_activity(self, user, channel, message, timestamp=None):
+        if timestamp is None:
+            timestamp = datetime.now(tzlocal())
         if user in self.activity:
             del self.activity[user]
 
@@ -145,18 +146,20 @@ class Activity(plugin.Plugin):
             print >>sys.stderr, e
         finally:
             cur.close()
-        print "updated db"
 
     def load_from_db(self):
         try:
             cur = self.conn.cursor()
             cur.execute("SELECT * from last_seen;")
             for user, channel, message, timestamp in cur.fetchall():
-                self.update_activity(user, channel, message, timestamp)
+                self.update_activity(user.decode('utf-8'),
+                        channel.decode('utf-8'), message.decode('utf-8'),
+                        timestamp)
 
             cur.execute("SELECT * from user_tells;")
             for target, sender, message in cur.fetchall():
-                self.add_tell(target, sender, message)
+                self.add_tell(target.decode('utf-8'),
+                        sender.decode('utf-8'), message.decode('utf-8'))
         except Exception as e:
             print >>sys.stderr, e
         finally:

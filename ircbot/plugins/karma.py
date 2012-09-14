@@ -55,6 +55,8 @@ class Karma(plugin.Plugin):
 
             results.append(result)
 
+        if len(results) == 0:
+            return None
         return u"; ".join(results)
 
     def _set_value(self, item, direction, reason):

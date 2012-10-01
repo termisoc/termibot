@@ -3,6 +3,8 @@
 import re
 import sys
 
+from threading import Thread
+
 from twisted.words.protocols import irc
 
 import pluginfactory
@@ -31,6 +33,11 @@ class Bot(object, irc.IRCClient):
             print >>sys.stderr, 'Joined %s' % channel
 
     def privmsg(self, user, channel, message):
+        thread = Thread(target=self.msg_thread, args=(user, channel, message))
+        thread.daemon = True
+        thread.start()
+
+    def msg_thread(self, user, channel, message):
         user = re.split(r'[!@]', user)
         print >>sys.stderr, 'from %s in %s: "%s"' % (user[0], channel, message)
 

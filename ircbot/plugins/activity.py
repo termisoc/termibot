@@ -104,10 +104,9 @@ class Activity(plugin.Plugin):
 
     def _timedelta_format(self, delta):
         s = delta.seconds
-        days, remainder = divmod(s, 86400)
-        hours, remainder = divmod(remainder, 3600)
+        hours, remainder = divmod(s, 3600)
         minutes, seconds = divmod(remainder, 60)
-        return u'%s days %.2d:%.2d:%.2d' % (days, hours, minutes, seconds)
+        return u'%s days %.2d:%.2d:%.2d' % (delta.days, hours, minutes, seconds)
 
     def _nick_cleanup(self, nick):
         return re.match(r'.*(?<![^a-z0-9])', nick.lower()).group(0)
@@ -115,17 +114,22 @@ class Activity(plugin.Plugin):
     def update_loop(self):
         while self.run_thread:
             self.update_db()
-            time.sleep(30)
+            time.sleep(300)
 
     def update_db(self):
         try:
             cur = self.conn.cursor()
-            cur.execute("DELETE FROM last_seen;")
-            for user in self.activity.iterkeys():
-                value = self.activity[user]
-                cur.execute("INSERT INTO last_seen VALUES(%s, %s, %s, %s);",
-                    (user, value['channel'], value['message'],
-                        value['timestamp']))
+            for user, value in self.activity.iteritems():
+                cur.execute("SELECT COUNT(*) FROM last_seen WHERE \
+                        target=%s", (user,))
+                if cur.fetchone()[0] == 0:
+                    cur.execute("INSERT INTO last_seen VALUES(%s, %s, %s, %s);",
+                        (user, value['channel'], value['message'],
+                            value['timestamp']))
+                else:
+                    cur.execute("UPDATE last_seen SET channel=%s, message=%s, \
+                            time=%s WHERE target=%s", (value['channel'],
+                                value['message'], value['timestamp'], user))
             self.conn.commit()
         except Exception as e:
             print >>sys.stderr, e

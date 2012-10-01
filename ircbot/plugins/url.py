@@ -49,10 +49,10 @@ class Url(plugin.Plugin):
         title = self._get_title(url)
         first_posted = self._get_first(url, user, short)
         if first_posted is not None:
-            return (u'[%s — %s] (first posted by %s on %s)' %
+            return (u'[ %s — %s ] (first posted by %s on %s)' %
                     (short, title, first_posted[0], first_posted[1]))
         else:
-            return (u'[%s — %s]' % (short, title))
+            return (u'[ %s — %s ]' % (short, title))
 
     def _handle_twitter(self, url):
         tweet = re.search(r'/([0-9]+)(/|$)', url).group(1)
@@ -70,9 +70,8 @@ class Url(plugin.Plugin):
                 data['user']['screen_name'], data['text'], data['created_at'])
 
     def _get_title(self, url):
-        req = urllib2.Request(url)
-        req.add_header('User-Agent', 'Mozilla/5.0')
-        data = urllib2.urlopen(req)
+        headers = {'User-Agent': 'Mozilla/5.0'}
+        data = urllib2.urlopen(urllib2.Request(url, headers=headers), timeout=5)
 
         ctype = data.info()["Content-Type"].split(";")[0]
         if ctype in ["text/html", "application/xhtml+xml"]:

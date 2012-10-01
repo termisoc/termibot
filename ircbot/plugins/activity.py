@@ -104,10 +104,9 @@ class Activity(plugin.Plugin):
 
     def _timedelta_format(self, delta):
         s = delta.seconds
-        days, remainder = divmod(s, 86400)
-        hours, remainder = divmod(remainder, 3600)
+        hours, remainder = divmod(s, 3600)
         minutes, seconds = divmod(remainder, 60)
-        return u'%s days %.2d:%.2d:%.2d' % (days, hours, minutes, seconds)
+        return u'%s days %.2d:%.2d:%.2d' % (delta.days, hours, minutes, seconds)
 
     def _nick_cleanup(self, nick):
         return re.match(r'.*(?<![^a-z0-9])', nick.lower()).group(0)

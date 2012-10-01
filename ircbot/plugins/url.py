@@ -49,10 +49,10 @@ class Url(plugin.Plugin):
         title = self._get_title(url)
         first_posted = self._get_first(url, user, short)
         if first_posted is not None:
-            return (u'[%s — %s] (first posted by %s on %s)' %
+            return (u'[ %s — %s ] (first posted by %s on %s)' %
                     (short, title, first_posted[0], first_posted[1]))
         else:
-            return (u'[%s — %s]' % (short, title))
+            return (u'[ %s — %s ]' % (short, title))
 
     def _handle_twitter(self, url):
         tweet = re.search(r'/([0-9]+)(/|$)', url).group(1)

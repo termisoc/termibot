@@ -33,6 +33,13 @@ class Karma(plugin.Plugin):
         results = []
         for match in self.karma_item_reason_re.findall(message):
             item, sign, reason = match[0:3]
+
+            if self._cleanup_item(item) == 'me':
+                item = user[0]
+                if sign != '--':
+                    sign = '--'
+                    reason = u'for trying to raise their own karma'
+
             if sign == '++':
                 change = 1
                 direction = u'up'

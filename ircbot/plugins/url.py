@@ -70,9 +70,8 @@ class Url(plugin.Plugin):
                 data['user']['screen_name'], data['text'], data['created_at'])
 
     def _get_title(self, url):
-        req = urllib2.Request(url)
-        req.add_header('User-Agent', 'Mozilla/5.0')
-        data = urllib2.urlopen(req)
+        headers = {'User-Agent': 'Mozilla/5.0'}
+        data = urllib2.urlopen(urllib2.Request(url, headers=headers), timeout=5)
 
         ctype = data.info()["Content-Type"].split(";")[0]
         if ctype in ["text/html", "application/xhtml+xml"]:

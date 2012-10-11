@@ -3,8 +3,7 @@
 import re
 import sys
 
-from threading import Thread
-
+from twisted.internet import reactor
 from twisted.words.protocols import irc
 
 import pluginfactory
@@ -33,9 +32,7 @@ class Bot(object, irc.IRCClient):
             print >>sys.stderr, 'Joined %s' % channel
 
     def privmsg(self, user, channel, message):
-        thread = Thread(target=self.msg_thread, args=(user, channel, message))
-        thread.daemon = True
-        thread.start()
+        reactor.callInThread(self.msg_thread, user, channel, message)
 
     def msg_thread(self, user, channel, message):
         user = re.split(r'[!@]', user)
@@ -76,4 +73,4 @@ class Bot(object, irc.IRCClient):
         if isinstance(target, unicode):
             target = target.encode('utf-8')
         print >>sys.stderr, 'to %s: "%s"' % (target, message)
-        irc.IRCClient.msg(self, target, message)
+        reactor.callFromThread(irc.IRCClient.msg, self, target, message)

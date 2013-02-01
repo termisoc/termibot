@@ -10,11 +10,11 @@ import plugin
 
 class Karma(plugin.Plugin):
     plusminus = ur'([+-]{2}|±)'
-    simple_karma = r'\w{2,}'
+    simple_karma = r'[\w-]{2,}'
     quoted_string = r'"(?:(?:\\.)|(?:[^"]))*"'
-    karma_word = '(' + simple_karma + '|' + quoted_string + ')' + \
+    karma_word = '(?:^|\s)(' + simple_karma + '|' + quoted_string + ')' + \
             r'(?=(?:\s|$))'
-    karma_item = '(' + simple_karma + '|' + quoted_string + ')' + \
+    karma_item = '(?:^|\s)(' + simple_karma + '|' + quoted_string + ')' + \
             plusminus + r'(?=(?:\s|$))'
     karma_item_reason = karma_item + \
             r'(\s+(?:(?:for|because).+?(?=' + karma_item + r'|$)|\([^\)]+\)))?'
@@ -31,10 +31,19 @@ class Karma(plugin.Plugin):
 
     def scan(self, user, channel, message):
         results = []
+
         for match in self.karma_item_reason_re.findall(message):
             item, sign, reason = match[0:3]
 
-            if self._cleanup_item(item) == 'me':
+            clean_item = self._cleanup_item(item)
+
+            item_age = self._get_item_age(clean_item)
+            if item_age != 0 and item_age.seconds < 300:
+                results.append('ignored %s (flooding: %s seconds left)' %
+                        (clean_item, 300 - item_age.seconds))
+                continue
+
+            if clean_item == 'me':
                 item = user[0]
                 if sign != '--':
                     sign = '--'
@@ -70,7 +79,8 @@ class Karma(plugin.Plugin):
         item = self._cleanup_item(item)
         try:
             cur = self.conn.cursor()
-            cur.execute("INSERT INTO karma VALUES(%s, NOW(), %s, %s);",
+            cur.execute("""INSERT INTO karma VALUES(%s,
+                    statement_timestamp(), %s, %s);""",
                     (item, direction, reason))
             self.conn.commit()
         except Exception as e:
@@ -94,11 +104,33 @@ class Karma(plugin.Plugin):
             cur.close()
             return result
 
+    def _get_item_age(self, item):
+        item = self._cleanup_item(item)
+        try:
+            cur = self.conn.cursor()
+            cur.execute('''SELECT statement_timestamp() - time FROM karma WHERE
+                    LOWER(item) = LOWER(%s)
+                    ORDER BY time DESC LIMIT 1''', (item,))
+            result = cur.fetchone()
+            if result is None:
+                result = 0
+            else:
+                result = result[0]
+        except Exception as e:
+            print >>sys.stderr, e
+            result = 0
+        finally:
+            cur.close()
+            return result
+
     def _cleanup_item(self, item):
         if item.startswith(u'"'):
             item = item[1:-1]
         else:
             item = re.sub('_', ' ', item)
+
+        # strip out control characters
+        item = filter(lambda c: ord(c) >= 32 or ord(c) == 127, item)
         return item
 
     def karma(self, user, channel, args):

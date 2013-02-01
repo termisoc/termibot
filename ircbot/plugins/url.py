@@ -65,19 +65,26 @@ class Url(plugin.Plugin):
         data = json.loads(req.read())
         if 'retweeted_status' in data and data['retweeted_status']:
             data = data['retweeted_status']
-        data['text'] = " ".join(data['text'].split('\n'))
+        data['text'] = self._unescape(" ".join(data['text'].split('\n')))
         return '%s (%s): %s (%s)' % (data['user']['name'],
                 data['user']['screen_name'], data['text'], data['created_at'])
 
     def _get_title(self, url):
         headers = {'User-Agent': 'Mozilla/5.0'}
-        data = urllib2.urlopen(urllib2.Request(url, headers=headers), timeout=5)
+        data = urllib2.urlopen(urllib2.Request(url, headers=headers),
+                timeout=5)
 
-        ctype = data.info()["Content-Type"].split(";")[0]
+        if ';' in data.info()['Content-Type']:
+            ctype, encoding = data.info()["Content-Type"].split(";", 2)
+            encoding = encoding.split('=')[1]
+        else:
+            ctype = data.info()['Content-Type']
+            encoding = 'utf-8'
         if ctype in ["text/html", "application/xhtml+xml"]:
             xml = html5lib.HTMLParser(
                     tree=html5lib.treebuilders.getTreeBuilder("etree"),
-                    namespaceHTMLElements=False).parse(data.read())
+                    namespaceHTMLElements=False).parse(
+                            data.read().decode(encoding))
             title = xml.find(".//title")
             if title is not None:
                 return re.sub(r"[\n\s]+", " ", title.text.strip())
@@ -126,3 +133,9 @@ class Url(plugin.Plugin):
         if 'id' in meta:
             return meta['id']
         return ''
+
+    def _unescape(self, text):
+        text = re.sub('&amp;', '&', text)
+        text = re.sub('&gt;', '>', text)
+        text = re.sub('&lt;', '<', text)
+        return text

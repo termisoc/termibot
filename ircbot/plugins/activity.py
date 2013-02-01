@@ -83,8 +83,12 @@ class Activity(plugin.Plugin):
         self.messages[target][sender].append(message)
 
     def add_tell_ui(self, user, channel, message):
-        self.add_tell(message[0], user[0], u' '.join(message[1:]))
-        return u'Okay, will tell %s on next speaking.' % message[0]
+        targets = message[0].split(',')
+        print targets
+        for target in targets:
+            self.add_tell(target, user[0], u' '.join(message[1:]))
+        self.update_db()
+        return u'Okay, will tell %s on next speaking.' % ' and '.join(targets)
 
     def run_tell(self, user):
         if not user in self.messages:
@@ -131,8 +135,8 @@ class Activity(plugin.Plugin):
                             time=%s WHERE target=%s", (value['channel'],
                                 value['message'], value['timestamp'], user))
             self.conn.commit()
-        except Exception as e:
-            print >>sys.stderr, e
+        except Exception:
+            raise
         finally:
             cur.close()
 
@@ -140,16 +144,18 @@ class Activity(plugin.Plugin):
             cur = self.conn.cursor()
             cur.execute("DELETE FROM user_tells;")
             for target in self.messages.iterkeys():
-                for sender, messages in self.messages[user].iteritems():
+                for sender, messages in self.messages[target].iteritems():
                     for message in messages:
                         cur.execute(
                                 "INSERT INTO user_tells VALUES(%s, %s, %s);",
                                 (target, sender, message))
             self.conn.commit()
-        except Exception as e:
-            print >>sys.stderr, e
+        except Exception:
+            raise
         finally:
             cur.close()
+
+        return None
 
     def load_from_db(self):
         try:

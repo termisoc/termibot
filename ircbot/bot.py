@@ -3,8 +3,8 @@
 import re
 import sys
 
-from threading import Thread
-
+from twisted.internet import reactor
+from twisted.internet.task import LoopingCall
 from twisted.words.protocols import irc
 
 import pluginfactory
@@ -12,6 +12,7 @@ import pluginfactory
 
 class Bot(object, irc.IRCClient):
     lineRate = 0.1
+    in_channels = []
 
     def connectionMade(self):
         self.nickname = self.factory.nick
@@ -24,18 +25,29 @@ class Bot(object, irc.IRCClient):
     def signedOn(self):
         """Called when bot has succesfully signed on to server."""
         print >>sys.stderr, 'Connected.'
-        print >>sys.stderr, 'Joining: [%s]' % ','.join(self.factory.channels)
         if 'nickserv' in self.factory.config:
             self.msg('NickServ', 'identify %s' %
                     self.factory.config['nickserv']['password'])
+
+        join_loop = LoopingCall(self.join_channels)
+        join_loop.start(1)
+
+    def joined(self, channel):
+        self.in_channels.append(channel)
+
+    def left(self, channel):
+        self.in_channels.remove(channel)
+
+    def join_channels(self):
         for channel in self.factory.channels:
-            self.join(channel.encode('utf-8'))
-            print >>sys.stderr, 'Joined %s' % channel
+            if channel.encode('utf-8') not in self.in_channels:
+                self.join(channel.encode('utf-8'))
 
     def privmsg(self, user, channel, message):
-        thread = Thread(target=self.msg_thread, args=(user, channel, message))
-        thread.daemon = True
-        thread.start()
+        reactor.callInThread(self.msg_thread, user, channel, message)
+
+    def noticed(self, user, channel, message):
+        pass
 
     def msg_thread(self, user, channel, message):
         user = re.split(r'[!@]', user)
@@ -76,4 +88,4 @@ class Bot(object, irc.IRCClient):
         if isinstance(target, unicode):
             target = target.encode('utf-8')
         print >>sys.stderr, 'to %s: "%s"' % (target, message)
-        irc.IRCClient.msg(self, target, message)
+        reactor.callFromThread(irc.IRCClient.msg, self, target, message)

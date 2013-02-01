@@ -10,7 +10,7 @@ import plugin
 
 class Karma(plugin.Plugin):
     plusminus = ur'([+-]{2}|±)'
-    simple_karma = r'\w{2,}'
+    simple_karma = r'[\w-]{2,}'
     quoted_string = r'"(?:(?:\\.)|(?:[^"]))*"'
     karma_word = '(' + simple_karma + '|' + quoted_string + ')' + \
             r'(?=(?:\s|$))'

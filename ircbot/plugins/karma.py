@@ -12,9 +12,9 @@ class Karma(plugin.Plugin):
     plusminus = ur'([+-]{2}|±)'
     simple_karma = r'[\w-]{2,}'
     quoted_string = r'"(?:(?:\\.)|(?:[^"]))*"'
-    karma_word = '(' + simple_karma + '|' + quoted_string + ')' + \
+    karma_word = '(?:^|\s)(' + simple_karma + '|' + quoted_string + ')' + \
             r'(?=(?:\s|$))'
-    karma_item = '(' + simple_karma + '|' + quoted_string + ')' + \
+    karma_item = '(?:^|\s)(' + simple_karma + '|' + quoted_string + ')' + \
             plusminus + r'(?=(?:\s|$))'
     karma_item_reason = karma_item + \
             r'(\s+(?:(?:for|because).+?(?=' + karma_item + r'|$)|\([^\)]+\)))?'

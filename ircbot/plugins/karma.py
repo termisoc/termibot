@@ -128,6 +128,9 @@ class Karma(plugin.Plugin):
             item = item[1:-1]
         else:
             item = re.sub('_', ' ', item)
+
+        # strip out control characters
+        item = filter(lambda c: ord(c) >= 32 or ord(c) == 127, item)
         return item
 
     def karma(self, user, channel, args):
